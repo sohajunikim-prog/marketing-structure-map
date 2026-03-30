@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>트립스토어 마케팅 자동화 구조</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e1e4e8; padding: 40px; }
+  h1 { text-align: center; font-size: 24px; margin-bottom: 8px; color: #fff; }
+  .subtitle { text-align: center; color: #8b949e; margin-bottom: 40px; font-size: 14px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1200px; margin: 0 auto; }
+  .full-width { grid-column: 1 / -1; }
+
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
+  .card h2 { font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .icon { font-size: 20px; }
+  .card h3 { font-size: 13px; color: #8b949e; margin: 14px 0 8px; border-top: 1px solid #21262d; padding-top: 10px; }
+
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin: 2px; }
+  .tag-memory { background: #1f3a5f; color: #58a6ff; }
+  .tag-script { background: #2a1f3f; color: #bc8cff; }
+  .tag-data { background: #1f3f2a; color: #7ee787; }
+  .tag-folder { background: #3f2a1f; color: #f0b050; }
+  .tag-constraint { background: #3f1f1f; color: #f85149; border: 1px solid #f8514933; }
+  .tag-schedule { background: #1f2f3f; color: #79c0ff; }
+
+  .role-section { margin-bottom: 16px; }
+  .role-section:last-child { margin-bottom: 0; }
+  .role-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #c9d1d9; }
+  .role-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 0; }
+  .flow-item { background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 8px 14px; font-size: 13px; }
+  .flow-item .time { color: #8b949e; font-size: 11px; display: block; }
+  .flow-item.sa { border-color: #e3b341; background: #1a1810; }
+  .flow-arrow { color: #484f58; font-size: 18px; }
+  .flow-label { font-size: 11px; color: #8b949e; width: 100%; margin-top: 4px; }
+
+  .legend { display: flex; gap: 16px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8b949e; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .memory-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+  .memory-item { background: #21262d; border-radius: 6px; padding: 8px 12px; font-size: 12px; }
+  .memory-item .name { color: #58a6ff; font-weight: 600; }
+  .memory-item .desc { color: #8b949e; font-size: 11px; margin-top: 2px; }
+  .memory-item.new { border-left: 3px solid #f0b050; }
+
+  .feedback-item { background: #1f1215; border-left: 3px solid #f85149; padding: 8px 12px; margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: 12px; color: #f0b050; }
+
+  .claude-model { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 4px; }
+  .model-opus { background: #2a1f3f; color: #bc8cff; }
+  .model-sonnet { background: #1f3a5f; color: #58a6ff; }
+
+  .dep-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+  .dep-row .dep-script { min-width: 220px; font-weight: 600; }
+  .dep-row .dep-status { font-size: 11px; }
+  .dep-connected { background: #121d12; border-left: 3px solid #7ee787; }
+  .dep-self { background: #1a1a1a; border-left: 3px solid #484f58; }
+  .dep-defer { background: #1a1714; border-left: 3px solid #f0b050; }
+
+  /* Modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; justify-content:center; align-items:center; backdrop-filter:blur(4px); }
+  .modal-overlay.active { display:flex; }
+  .modal-content { background:#161b22; border:1px solid #30363d; border-radius:14px; width:min(720px,90vw); max-height:80vh; display:flex; flex-direction:column; box-shadow:0 16px 48px rgba(0,0,0,.4); }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #21262d; }
+  .modal-title { font-size:15px; font-weight:700; color:#58a6ff; }
+  .modal-close { background:none; border:none; color:#8b949e; font-size:24px; cursor:pointer; padding:0 4px; line-height:1; }
+  .modal-close:hover { color:#fff; }
+  .modal-body { padding:20px; overflow-y:auto; font-size:13px; line-height:1.7; color:#c9d1d9; }
+  .modal-body h3 { font-size:16px; color:#fff; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid #21262d; }
+  .modal-body h4 { font-size:14px; color:#e1e4e8; margin:14px 0 6px; }
+  .modal-body h5 { font-size:13px; color:#c9d1d9; margin:12px 0 4px; }
+  .modal-body h6 { font-size:12px; color:#8b949e; margin:10px 0 4px; }
+  .modal-body p { margin:3px 0; }
+  .modal-body .md-li { padding-left:16px; position:relative; margin:2px 0; }
+  .modal-body .md-li::before { content:"•"; position:absolute; left:4px; color:#484f58; }
+  .modal-body .md-ol::before { content:""; }
+  .modal-body .md-spacer { height:8px; }
+  .modal-body pre { background:#0d1117; border:1px solid #21262d; border-radius:8px; padding:12px; overflow-x:auto; margin:8px 0; font-size:12px; line-height:1.5; }
+  .modal-body pre code { color:#7ee787; font-family:'SF Mono',Monaco,monospace; }
+  .modal-body code.inline { background:#21262d; padding:2px 6px; border-radius:4px; font-size:12px; color:#f0b050; }
+  .modal-body table { width:100%; border-collapse:collapse; margin:8px 0; font-size:12px; }
+  .modal-body th { background:#21262d; padding:6px 10px; text-align:left; color:#8b949e; font-weight:600; border:1px solid #30363d; }
+  .modal-body td { padding:6px 10px; border:1px solid #21262d; }
+  .modal-body strong { color:#f0b050; }
+  .modal-body a { color:#58a6ff; text-decoration:none; }
+  .modal-body a:hover { text-decoration:underline; }
+
+
+  /* Accordion cards */
+  .card h2 { cursor:pointer; user-select:none; position:relative; padding-right:28px; }
+  .card h2::after { content:"▾"; position:absolute; right:0; font-size:14px; color:#484f58; transition:transform .2s; }
+  .card.collapsed h2::after { transform:rotate(-90deg); }
+  .card.collapsed .card-body { display:none; }
+  .card-body { /* wrapper for collapsible content */ }
+
+  /* Sub-section accordion (h3) */
+  .card h3 { cursor:pointer; user-select:none; position:relative; padding-right:24px; }
+  .card h3::after { content:"▾"; position:absolute; right:0; top:10px; font-size:12px; color:#484f58; transition:transform .2s; }
+  .card h3.collapsed::after { transform:rotate(-90deg); }
+  .card h3.collapsed + .sub-body { display:none; }
+
+  /* Card count badge */
+  .card-count { font-size:11px; color:#484f58; font-weight:400; margin-left:auto; padding-right:4px; }
+
+
+  /* Clickable agent rows */
+  .dep-row [onclick] { transition: color .15s; }
+  .dep-row:has([onclick]):hover { transform: translateY(-1px); transition: transform .15s; }
+
+  /* Make memory items clickable */
+  .memory-item.clickable { cursor:pointer; transition:all .15s; }
+  .memory-item.clickable:hover { background:#30363d; border-color:#58a6ff; transform:translateY(-1px); }
+</style>
+</head>
+<body>
+
+<h1>트립스토어 마케팅 자동화 구조</h1>
+<p class="subtitle">CLAUDE.md + Memory + Scripts + Skills + Agents + Hooks + Rules | 2026-03-27 기준</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div> Memory <span style="color:#484f58">— Claude가 기억하는 업무 지식</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div> Script <span style="color:#484f58">— 자동으로 돌아가는 프로그램</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7ee787"></div> Data Source <span style="color:#484f58">— 데이터를 가져오는 곳</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0b050"></div> Folder <span style="color:#484f58">— 폴더 구조</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e3b341"></div> 네이버 SA <span style="color:#484f58">— 검색광고 입찰 자동화 흐름</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div> GA 모니터링 <span style="color:#484f58">— 클라우드에서 자동화 감시</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div> 제약 조건 <span style="color:#484f58">— 반드시 지켜야 할 규칙</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div> Skill / Agent <span style="color:#484f58">— 특수 명령 또는 전문 AI 분신</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#da3633"></div> Hook / Rule <span style="color:#484f58">— 자동 안전장치 및 작업 규칙</span></div>
+</div>
+
+<div class="grid">
+
+  <!-- 매일 자동화 플로우 -->
+  <div class="card full-width">
+    <h2><span class="icon">&#9881;</span> 매일 자동화 실행 흐름 (auto-wake + launchd)</h2>
+    <div class="card-body">
+    <div class="flow">
+      <div class="flow-item" style="border-color:#79c0ff;background:#0d1b2a"><span class="time">09:55</span>맥북 깨우기<br><span style="color:#79c0ff;font-size:11px">자동으로 맥북 켜고 80분 유지</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">10:00</span>메일 점검</div>
+      <span class="flow-arrow" style="color:#30363d">&#8214;</span>
+      <div class="flow-item"><span class="time">10:00</span>OCI 업로드<br><span style="color:#7ee787;font-size:11px">BQ GCLID → GAds 오프라인 전환</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">10:05</span>데이터 동기화<br><span style="color:#7ee787;font-size:11px">완료 → 다음 작업에 신호 전달</span></div>
+      <span class="flow-arrow" style="color:#30363d">&#8214;</span>
+      <div class="flow-item"><span class="time">10:05</span>블로그 리포트<br><span style="color:#7ee787;font-size:11px">Amplitude에서 직접 조회</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">10:10</span>데일리 브리핑<br><span style="color:#f0b050;font-size:11px">동기화 완료 대기 후 실행</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">10:20</span>기한 지연 알림<br><span style="color:#7ee787;font-size:11px">노션에서 직접 조회</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">10:25</span>매체별 CAC<br><span style="color:#f0b050;font-size:11px">동기화 완료 대기 후 실행</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">11:00</span>소재 성과 체크<br><span style="color:#f0b050;font-size:11px">BQ CAC + Meta. Sync Gate 대기</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item" style="border-color:#79c0ff;background:#0d1b2a"><span class="time">11:15</span>GitHub 감시<br><span style="color:#79c0ff;font-size:11px">실행 안 됐으면 슬랙 알림</span></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="tag tag-script">메일 점검</span>
+      <span class="tag tag-script">OCI 업로드</span>
+      <span class="tag tag-script">데이터 동기화</span>
+      <span class="tag tag-script">블로그 리포트</span>
+      <span class="tag tag-script">데일리 브리핑</span>
+      <span class="tag tag-script">기한 지연 알림</span>
+      <span class="tag tag-script">CAC 리포트</span>
+      <span class="tag tag-script">소재 성과 체크</span>
+    </div>
+
+    <div class="flow-label" style="margin-top:12px;font-size:12px;color:#7ee787">&#9989; 자동 검증 &#8212; 20개 파일, 932개 테스트 (코드 수정 시 자동 품질 체크)</div>
+
+    <h3>&#128197; 네이버 SA 자동화 (월/목만)</h3>
+    <div class="sub-body">
+    <div class="flow">
+      <div class="flow-item sa"><span class="time">10:00 월/목</span>SA 영향 분석<br><span style="color:#7ee787;font-size:11px">전주 조정 성과 비교</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item sa"><span class="time">10:30 월/목</span>SA 조정안 미리보기<br><span style="color:#58a6ff;font-size:11px">적용 전 검토용 → 노션+슬랙</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item sa"><span class="time">11:00 월/목</span>SA CPC 실제 적용<br><span style="color:#f85149;font-size:11px">입찰가 변경 후 자동 검증</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item sa" style="border-color:#f85149"><span class="time">자동</span>안전 점검<br><span style="color:#f85149;font-size:11px">이상 3건 이상이면 자동 차단</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item sa"><span class="time">자동</span>검증 + Notion + Slack<br><span style="color:#7ee787;font-size:11px">적용결과 페이지 자동 생성</span></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="tag tag-script">SA 영향 분석</span>
+      <span class="tag tag-script">SA 입찰 조정</span>
+      <span class="tag tag-script">SA 입찰가 되돌리기</span>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:#8b949e">
+      전환당 비용 기준 6단계 자동 조정 | 목표 CPA ₩8만 | 최근 14일 데이터 기준 | 1회 최대 ±30% 변경 | CPC ₩70~₩10,000 범위
+    </div>
+    <div style="margin-top:6px;font-size:12px;color:#f85149">
+      안전 점검: ① 한 키워드에 ₩1,000 이상 변동 ② 상향/하향 한쪽 85%+ 편중 ③ 고비용 키워드 급변 ④ 일 예산 ₩5만 이상 변동 → 3건 이상이면 자동 차단 + 슬랙 DM
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>&#128197; 주간 자동화</h3>
+    <div class="sub-body">
+    <div class="flow">
+      <div class="flow-item"><span class="time">월 10:30</span>타임라인 오픈 알림<br><span style="color:#7ee787;font-size:11px">Task[오픈] &#8594; Slack DM</span></div>
+      <span class="flow-arrow" style="color:#30363d">&#8214;</span>
+      <div class="flow-item" style="border-color:#bc8cff;background:#1a1530"><span class="time">수 10:00</span>스파크플러스 예약<br><span style="color:#bc8cff;font-size:11px">자동 브라우저로 +14일 예약</span></div>
+      <span class="flow-arrow" style="color:#30363d">&#8214;</span>
+      <div class="flow-item"><span class="time">목 11:00</span>Weekly 생성<br><span style="color:#7ee787;font-size:11px">Notion 위클리 페이지</span></div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-item"><span class="time">목 18:00</span>주간 회고<br><span style="color:#bc8cff;font-size:11px">Claude 분석 &#8594; Notion</span></div>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="tag tag-script">타임라인 오픈 알림</span>
+      <span class="tag tag-script">회의실 자동 예약</span>
+      <span class="tag tag-script">위클리 페이지 생성</span>
+      <span class="tag tag-script">주간 회고</span>
+    </div><!-- /sub-body -->
+    </div>
+    </div>
+  </div>
+
+  <!-- Claude 분석 모델 -->
+  <div class="card full-width">
+    <h2><span class="icon">&#129302;</span> Claude AI가 분석하는 곳</h2>
+    <div class="card-body">
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px"><span class="claude-model model-opus">Opus</span> 내 맥북에서 실행 (기본)</div>
+        <div style="font-size:12px;color:#8b949e;line-height:1.8">
+          CAC 리포트<br>
+          블로그 리포트<br>
+          데일리 브리핑<br>
+          SA 영향 분석<br>
+          주간 회고
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px"><span class="claude-model model-sonnet">Sonnet</span> 클라우드 비상 실행 전용</div>
+        <div style="font-size:12px;color:#8b949e;line-height:1.8">
+          맥북이 꺼져있을 때 비상 실행<br>
+          평소에는 모니터링만 (실행은 맥북에서)
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- 공용 도구 모음 (shared/) -->
+  <div class="card full-width">
+    <h2><span class="icon">&#128230;</span> 공용 도구 모음 — 여러 자동화가 함께 쓰는 기능<span class="card-count">8+16</span></h2>
+    <div class="card-body">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="flex:1;min-width:260px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#7ee787">공용 도구 (8개)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <span class="tag tag-folder">config.py</span><span style="font-size:11px;color:#8b949e">환경 설정 + 공휴일 판별</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">notion.py</span><span style="font-size:11px;color:#8b949e">노션 페이지 생성/수정 도구</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">claude.py</span><span style="font-size:11px;color:#8b949e">Claude AI 분석 호출</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">slack.py</span><span style="font-size:11px;color:#8b949e">슬랙 DM 알림 발송</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">naver_sa.py</span><span style="font-size:11px;color:#8b949e">네이버 검색광고 API 연동</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">bq.py</span><span style="font-size:11px;color:#8b949e">BigQuery 데이터 조회</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">sync_gate.py</span><span style="font-size:11px;color:#8b949e">데이터 동기화 완료 대기 (순서 보장)</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+          <span class="tag tag-folder">apple_search_ads.py</span><span style="font-size:11px;color:#8b949e">Apple 검색광고 API 연동</span>
+        </div>
+      </div>
+      <div style="flex:2;min-width:400px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#c9d1d9">각 자동화가 어떤 공용 도구를 쓰는지</div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">CAC 리포트</span>
+          <span class="dep-status" style="color:#7ee787">매체별 CAC 분석 → 노션+슬랙 발행</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">블로그 리포트</span>
+          <span class="dep-status" style="color:#7ee787">블로그 유입/전환 → Claude 분석 → 노션+슬랙</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">SA 입찰 조정</span>
+          <span class="dep-status" style="color:#7ee787">네이버 SA API + BQ 전환 → CPC 자동 조정 → 슬랙+노션</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">SA 영향 분석</span>
+          <span class="dep-status" style="color:#7ee787">CPC 변경 전/후 성과 비교 → Claude 분석</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">주간 회고</span>
+          <span class="dep-status" style="color:#7ee787">팀 완료 업무 + KPI → Claude 분석 → 노션+슬랙</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">타임라인 알림</span>
+          <span class="dep-status" style="color:#7ee787">이번 주 오픈 예정 Task → 슬랙 알림</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">기한 지연 알림</span>
+          <span class="dep-status" style="color:#7ee787">지연 Task PM별 정리 → 슬랙 알림</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">인플루언서 발굴</span>
+          <span class="dep-status" style="color:#7ee787">유튜브 검색 → 스코어링 → 노션+슬랙</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">프로모션 Task</span>
+          <span class="dep-status" style="color:#7ee787">역산 일정 자동 생성 → 노션</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">Apple SA 조정</span>
+          <span class="dep-status" style="color:#7ee787">iOS 앱 검색광고 CPT 자동 조정 (준비 중)</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">회의실 예약</span>
+          <span class="dep-status" style="color:#7ee787">스파크플러스 3E 자동 예약 → 슬랙 알림</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">미디어믹스</span>
+          <span class="dep-status" style="color:#7ee787">BQ 실데이터 → 채널별 예산 배분 2종 생성</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">소재 성과 관리</span>
+          <span class="dep-status" style="color:#7ee787">BQ CAC 기반 → 소재 ON/OFF 추천 → 슬랙</span>
+        </div>
+        <div class="dep-row dep-self">
+          <span class="dep-script" style="color:#8b949e">데일리 브리핑</span>
+          <span class="dep-status" style="color:#8b949e">자체 도구 사용 (공용 도구와 호환 안 됨)</span>
+        </div>
+        <div class="dep-row dep-connected">
+          <span class="dep-script" style="color:#7ee787">데일리 동기화</span>
+          <span class="dep-status" style="color:#7ee787">BQ/시트 7개 → 대시보드 동기화 (다른 자동화 시작 신호)</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#8b949e;border-top:1px solid #21262d;padding-top:8px">
+      &#9432; 데일리 브리핑은 자체 노션 도구를 쓰고 있어서 공용 도구로 전환이 어렵습니다 (내부 방식 차이).
+    </div>
+    </div>
+  </div>
+
+  <!-- 퍼포먼스 -->
+  <div class="card">
+    <h2><span class="icon">&#128200;</span> 퍼포먼스</h2>
+    <div class="card-body">
+    <div class="role-section">
+      <div class="role-name">Folder & Memory</div>
+      <div class="role-tags">
+        <span class="tag tag-folder">1_퍼포먼스/</span>
+        <span class="tag tag-memory">paid_media_ops</span>
+        <span class="tag tag-memory">media_cac_report</span>
+        <span class="tag tag-memory">ad_pipeline</span>
+        <span class="tag tag-memory">utm_convention</span>
+        <span class="tag tag-memory">naver_sa_optimizer</span>
+        <span class="tag tag-memory">sa_impact_report</span>
+        <span class="tag tag-memory">api_credentials</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Scripts</div>
+      <div class="role-tags">
+        <span class="tag tag-script">brief_json_generator.py</span>
+        <span class="tag tag-script">ad_pipeline.py</span>
+        <span class="tag tag-script">ad_controller.py</span>
+        <span class="tag tag-script">meta_ad_manager.py</span>
+        <span class="tag tag-script">naver_sa_keyword_report.py</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Data</div>
+      <div class="role-tags">
+        <span class="tag tag-data">Google Ads API</span>
+        <span class="tag tag-data">Meta API</span>
+        <span class="tag tag-data">네이버 SA API</span>
+        <span class="tag tag-data">대시보드 시트</span>
+        <span class="tag tag-data">쉬움 시트</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Constraints</div>
+      <div class="role-tags">
+        <span class="tag tag-constraint">실제 전환 기준 CAC만 사용</span>
+        <span class="tag tag-constraint">네이버BSA는 예산 고정</span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- 데이터 -->
+  <div class="card">
+    <h2><span class="icon">&#128202;</span> 데이터</h2>
+    <div class="card-body">
+    <div class="role-section">
+      <div class="role-name">Folder & Memory</div>
+      <div class="role-tags">
+        <span class="tag tag-folder">3_데이터/</span>
+        <span class="tag tag-folder">데일리 브리핑</span>
+        <span class="tag tag-folder">공용 도구 (8개)</span>
+        <span class="tag tag-folder">CAC 리포트</span>
+        <span class="tag tag-folder">SA 입찰 조정</span>
+        <span class="tag tag-folder">SA 영향 분석</span>
+        <span class="tag tag-folder">주간 회고</span>
+        <span class="tag tag-folder">타임라인 알림</span>
+        <span class="tag tag-folder">기한 지연 알림</span>
+        <span class="tag tag-folder">블로그 리포트</span>
+        <span class="tag tag-folder">인플루언서 발굴</span>
+        <span class="tag tag-folder">Apple SA 조정 (준비 중)</span>
+        <span class="tag tag-folder">프로모션 Task</span>
+        <span class="tag tag-folder">회의실 예약</span>
+        <span class="tag tag-folder">미디어믹스</span>
+        <span class="tag tag-folder">소재 성과 관리</span>
+        <span class="tag tag-folder">월별 시트</span>
+        <span class="tag tag-folder">자동 검증 (932개 테스트)</span>
+        <span class="tag tag-memory">daily_sync</span>
+        <span class="tag tag-memory">daily_briefing</span>
+        <span class="tag tag-memory">briefing_redesign</span>
+        <span class="tag tag-memory">amplitude_event_taxonomy</span>
+        <span class="tag tag-memory">blog_daily_report</span>
+        <span class="tag tag-memory">backlog_alert</span>
+        <span class="tag tag-memory">influencer_scout</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Data</div>
+      <div class="role-tags">
+        <span class="tag tag-data">BigQuery (kpi_daily_new)</span>
+        <span class="tag tag-data">Amplitude</span>
+        <span class="tag tag-data">Braze (빅인)</span>
+        <span class="tag tag-data">대시보드 시트</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Constraints</div>
+      <div class="role-tags">
+        <span class="tag tag-constraint">임의 수치 만들기 금지</span>
+        <span class="tag tag-constraint">실제 데이터만 사용</span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- 콘텐츠 -->
+  <div class="card">
+    <h2><span class="icon">&#9997;</span> 콘텐츠</h2>
+    <div class="card-body">
+    <div class="role-section">
+      <div class="role-name">Folder & Memory</div>
+      <div class="role-tags">
+        <span class="tag tag-folder">콘텐츠/</span>
+        <span class="tag tag-memory">seo_focus_keywords</span>
+        <span class="tag tag-memory">seo_blog_prompt</span>
+        <span class="tag tag-memory">youtube_pipeline</span>
+        <span class="tag tag-memory">influencer_scout</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Scripts</div>
+      <div class="role-tags">
+        <span class="tag tag-script">expand_keywords.py</span>
+        <span class="tag tag-script">youtube_pipeline.py</span>
+        <span class="tag tag-script">influencer_scout.py &#8594; 인플루언서 발굴</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Data</div>
+      <div class="role-tags">
+        <span class="tag tag-data">KeywordPlanIdeaService</span>
+        <span class="tag tag-data">Amplitude (블로그)</span>
+        <span class="tag tag-data">YouTube Data API v3</span>
+        <span class="tag tag-data">Gmail API</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">Constraints</div>
+      <div class="role-tags">
+        <span class="tag tag-constraint">검색량 API 실측만</span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- 전략 + 온사이트 -->
+  <div class="card">
+    <h2><span class="icon">&#127919;</span> 전략 & 온사이트</h2>
+    <div class="card-body">
+    <div class="role-section">
+      <div class="role-name">전략</div>
+      <div class="role-tags">
+        <span class="tag tag-folder">2_전략/</span>
+        <span class="tag tag-memory">weekly_and_slack</span>
+        <span class="tag tag-memory">weekly_retrospective</span>
+        <span class="tag tag-data">UXR 조사</span>
+        <span class="tag tag-data">마케팅 전략 문서</span>
+      </div>
+    </div>
+    <div class="role-section">
+      <div class="role-name">온사이트</div>
+      <div class="role-tags">
+        <span class="tag tag-folder">4_온사이트/</span>
+        <span class="tag tag-memory">backlog_alert</span>
+        <span class="tag tag-data">Amplitude (전환 퍼널)</span>
+        <span class="tag tag-data">프로모션 캘린더 시트</span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Memory 전체 목록 -->
+  <div class="card full-width">
+    <h2><span class="icon">&#128293;</span> Memory 파일 (35개)<span class="card-count">35</span></h2>
+    <div class="card-body">
+    <div class="memory-list">
+      <div class="memory-item clickable" onclick="openMemory('daily_sync')"><div class="name">daily_sync</div><div class="desc">7개 동기화, 10:05 실행</div></div>
+      <div class="memory-item clickable" onclick="openMemory('daily_briefing')"><div class="name">daily_briefing</div><div class="desc">브리핑 3종 + 메일 요약</div></div>
+      <div class="memory-item clickable" onclick="openMemory('briefing_redesign')"><div class="name">briefing_redesign</div><div class="desc">카드형 포맷 + 코멘트 + toggle</div></div>
+      <div class="memory-item clickable" onclick="openMemory('media_cac_report')"><div class="name">media_cac_report</div><div class="desc">매체별 CAC, Claude 분석</div></div>
+      <div class="memory-item clickable" onclick="openMemory('blog_daily_report')"><div class="name">blog_daily_report</div><div class="desc">블로그 성과, 목표 500건</div></div>
+      <div class="memory-item clickable" onclick="openMemory('paid_media_ops')"><div class="name">paid_media_ops</div><div class="desc">매체 운영/예산 현황</div></div>
+      <div class="memory-item clickable" onclick="openMemory('naver_sa_optimizer')"><div class="name">naver_sa_optimizer</div><div class="desc">SA CPC 자동 조정, CPA 6단계+safeguard+확장룩백+캠페인오버라이드</div></div>
+      <div class="memory-item clickable" onclick="openMemory('sa_impact_report')"><div class="name">sa_impact_report</div><div class="desc">SA 조정 before/after 분석</div></div>
+      <div class="memory-item clickable" onclick="openMemory('apple_sa_optimizer')"><div class="name">apple_sa_optimizer</div><div class="desc">ASA CPT 자동 조정 (API 인증 대기)</div></div>
+      <div class="memory-item clickable" onclick="openMemory('ad_pipeline')"><div class="name">ad_pipeline</div><div class="desc">Figma&#8594;카피&#8594;PNG 자동화</div></div>
+      <div class="memory-item clickable" onclick="openMemory('utm_convention')"><div class="name">utm_convention</div><div class="desc">UTM 네이밍 규칙</div></div>
+      <div class="memory-item clickable" onclick="openMemory('api_credentials')"><div class="name">api_credentials</div><div class="desc">시트 ID, API 키 참조</div></div>
+      <div class="memory-item clickable" onclick="openMemory('amplitude_event_taxonomy')"><div class="name">amplitude_event_taxonomy</div><div class="desc">20 카테고리, 전환 퍼널</div></div>
+      <div class="memory-item clickable" onclick="openMemory('seo_focus_keywords')"><div class="name">seo_focus_keywords</div><div class="desc">2,000개 키워드</div></div>
+      <div class="memory-item clickable" onclick="openMemory('seo_blog_prompt')"><div class="name">seo_blog_prompt</div><div class="desc">Q&A 포맷 규칙</div></div>
+      <div class="memory-item clickable" onclick="openMemory('youtube_pipeline')"><div class="name">youtube_pipeline</div><div class="desc">6단계 영상 파이프라인</div></div>
+      <div class="memory-item clickable" onclick="openMemory('weekly_and_slack')"><div class="name">weekly_and_slack</div><div class="desc">위클리 생성, 태그 정리</div></div>
+      <div class="memory-item clickable" onclick="openMemory('weekly_retrospective')"><div class="name">weekly_retrospective</div><div class="desc">weekly_retro/ 5모듈, Claude 분석</div></div>
+      <div class="memory-item clickable" onclick="openMemory('timeline_weekly_alert')"><div class="name">timeline_weekly_alert</div><div class="desc">timeline_alert/ 6모듈</div></div>
+      <div class="memory-item clickable" onclick="openMemory('weekly_report_format')"><div class="name">weekly_report_format</div><div class="desc">주간업무 공유 작성 규칙</div></div>
+      <div class="memory-item clickable" onclick="openMemory('github_actions')"><div class="name">github_actions</div><div class="desc">GA 모니터링 전용 (auto-wake 전환)</div></div>
+      <div class="memory-item clickable" onclick="openMemory('automation_schedule')"><div class="name">automation_schedule</div><div class="desc">launchd 전체 스케줄, Sync Gate</div></div>
+      <div class="memory-item clickable" onclick="openMemory('troubleshooting')"><div class="name">troubleshooting</div><div class="desc">장애 대응 가이드</div></div>
+      <div class="memory-item clickable" onclick="openMemory('testing')"><div class="name">testing</div><div class="desc">20 파일, 932개 테스트</div></div>
+      <div class="memory-item clickable" onclick="openMemory('app_vs_web_ads')"><div class="name">app_vs_web_ads</div><div class="desc">앱설치 vs 웹광고 BQ 비교분석</div></div>
+      <div class="memory-item clickable" onclick="openMemory('marketing_cost_analysis')"><div class="name">marketing_cost_analysis</div><div class="desc">2024-2025 월별 비용 정리</div></div>
+      <div class="memory-item new clickable" onclick="openMemory('backlog_alert')"><div class="name">backlog_alert</div><div class="desc">기한 지연 알림 + promo Task 역산</div></div>
+      <div class="memory-item new clickable" onclick="openMemory('influencer_scout')"><div class="name">influencer_scout</div><div class="desc">YouTube 발굴 + 6팩터 스코어링 + Gmail</div></div>
+      <div class="memory-item new clickable" onclick="openMemory('media_mix_2604')"><div class="name">media_mix_2604</div><div class="desc">미디어믹스 7단계, BQ 채널매핑, CVR 기준</div></div>
+      <div class="memory-item new clickable" onclick="openMemory('media_mix_creator_spec')"><div class="name">media_mix_creator_spec</div><div class="desc">media_mix_creator.py 구현 명세 (media_mix/ 6모듈)</div></div>
+      <div class="memory-item new clickable" onclick="openMemory('monthly_sheet_layout')"><div class="name">monthly_sheet_layout</div><div class="desc">시트 레이아웃, 매체-컬럼 매핑, I열 가중치</div></div>
+      <div class="memory-item new clickable" onclick="openMemory('sparkplus_booking')"><div class="name">sparkplus_booking</div><div class="desc">Playwright 회의실 자동 예약 (수 10:00)</div></div>
+      <div class="memory-item clickable" onclick="openMemory('feedback_rules')"><div class="name">feedback_rules</div><div class="desc">행동 규칙 14개 (통합)</div></div>
+      <div class="memory-item clickable" onclick="openMemory('feedback_weekday')"><div class="name">feedback_weekday</div><div class="desc">요일 계산 date 명령 확인 필수</div></div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Agents -->
+  <div class="card full-width">
+    <h2><span class="icon">&#9889;</span> 전문 에이전트 (12개) <span style="font-size:11px;color:#8b949e;font-weight:400;margin-left:8px">.claude/agents/</span><span class="card-count">12</span></h2>
+    <div class="card-body">
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#d2a8ff">마케팅 (7개)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:6px">
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #d2a8ff">
+        <span class="dep-script" style="color:#d2a8ff" onclick="openAgent('mkt-script-dev')" style="cursor:pointer">mkt-script-dev <span class="claude-model model-opus">Opus</span></span>
+        <span class="dep-status" style="color:#8b949e">acceptEdits | maxTurns:30 | skills:[verify] — 개발/수정, dual-update</span>
+      </div>
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #d2a8ff">
+        <span class="dep-script" style="color:#d2a8ff" onclick="openAgent('mkt-perf-analyst')" style="cursor:pointer">mkt-perf-analyst <span class="claude-model model-opus">Opus</span></span>
+        <span class="dep-status" style="color:#8b949e">default | maxTurns:20 — BQ 쿼리, CAC, 전환 퍼널, 예산 재배분</span>
+      </div>
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #d2a8ff">
+        <span class="dep-script" style="color:#d2a8ff" onclick="openAgent('mkt-naver-sa')" style="cursor:pointer">mkt-naver-sa <span class="claude-model model-opus">Opus</span></span>
+        <span class="dep-status" style="color:#8b949e">default | maxTurns:25 — SA CPC 조정안/적용, 영향 분석</span>
+      </div>
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #f0b050">
+        <span class="dep-script" style="color:#f0b050" onclick="openAgent('mkt-ad-creative')" style="cursor:pointer">mkt-ad-creative <span class="claude-model model-opus">Opus</span></span>
+        <span class="dep-status" style="color:#8b949e">default | maxTurns:25 — Figma→렌더링→Meta 등록, GDN 에셋 교체, 소재 성과</span>
+      </div>
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #f0b050">
+        <span class="dep-script" style="color:#f0b050" onclick="openAgent('mkt-content')" style="cursor:pointer">mkt-content <span class="claude-model model-opus">Opus</span></span>
+        <span class="dep-status" style="color:#8b949e">default | maxTurns:25 — SEO 블로그, 키워드 관리, 인플루언서, YouTube</span>
+      </div>
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #d2a8ff">
+        <span class="dep-script" style="color:#d2a8ff" onclick="openAgent('mkt-notion-weekly')" style="cursor:pointer">mkt-notion-weekly <span class="claude-model model-sonnet">Sonnet</span></span>
+        <span class="dep-status" style="color:#8b949e">default | maxTurns:25 — 위클리 CRUD, 업무 정리, 주간 회고</span>
+      </div>
+      <div class="dep-row" style="background:#1a1530;border-left:3px solid #d2a8ff">
+        <span class="dep-script" style="color:#d2a8ff" onclick="openAgent('mkt-ops-monitor')" style="cursor:pointer">mkt-ops-monitor <span class="claude-model model-sonnet">Sonnet</span></span>
+        <span class="dep-status" style="color:#8b949e">plan(읽기전용) | maxTurns:15 — launchd 점검, 로그 분석, 장애 진단</span>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;margin:14px 0 8px;color:#79c0ff">GEO/SEO (5개)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:6px">
+      <div class="dep-row" style="background:#0d1b2a;border-left:3px solid #79c0ff">
+        <span class="dep-script" style="color:#79c0ff" onclick="openAgent('geo-ai-visibility')" style="cursor:pointer">geo-ai-visibility</span>
+        <span class="dep-status" style="color:#8b949e">AI 검색 가시성, citability, 크롤러 접근, llms.txt</span>
+      </div>
+      <div class="dep-row" style="background:#0d1b2a;border-left:3px solid #79c0ff">
+        <span class="dep-script" style="color:#79c0ff" onclick="openAgent('geo-content')" style="cursor:pointer">geo-content</span>
+        <span class="dep-status" style="color:#8b949e">E-E-A-T 신호, 콘텐츠 품질, AI 콘텐츠 감지</span>
+      </div>
+      <div class="dep-row" style="background:#0d1b2a;border-left:3px solid #79c0ff">
+        <span class="dep-script" style="color:#79c0ff" onclick="openAgent('geo-platform-analysis')" style="cursor:pointer">geo-platform-analysis</span>
+        <span class="dep-status" style="color:#8b949e">Google AI Overviews, ChatGPT, Perplexity 최적화</span>
+      </div>
+      <div class="dep-row" style="background:#0d1b2a;border-left:3px solid #79c0ff">
+        <span class="dep-script" style="color:#79c0ff" onclick="openAgent('geo-schema')" style="cursor:pointer">geo-schema</span>
+        <span class="dep-status" style="color:#8b949e">JSON-LD 구조화 데이터 감지/검증/생성</span>
+      </div>
+      <div class="dep-row" style="background:#0d1b2a;border-left:3px solid #79c0ff">
+        <span class="dep-script" style="color:#79c0ff" onclick="openAgent('geo-technical')" style="cursor:pointer">geo-technical</span>
+        <span class="dep-status" style="color:#8b949e">크롤러빌리티, 인덱서빌리티, CWV, SSR, 보안</span>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:#8b949e;border-top:1px solid #21262d;padding-top:8px;margin-top:10px">
+      Claude가 작업 맥락에 따라 자동 위임하거나, 사용자가 직접 지정 가능
+    </div>
+    </div>
+  </div>
+
+  <!-- 수동 트리거 -->
+  <div class="card full-width">
+    <h2><span class="icon">&#128172;</span> 수동 트리거 <span style="font-size:11px;color:#8b949e;font-weight:400;margin-left:8px">자연어 또는 <span style="color:#d2a8ff">/run</span> 단축 &#8212; 같은 동작</span><span class="card-count">26</span></h2>
+    <div class="card-body">
+
+    <h3>데일리 리포팅</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item"><div class="name">"daily sync 실행해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run sync</span></div><div class="desc">BQ/시트 수동 동기화</div></div>
+      <div class="memory-item"><div class="name">"daily sync 로그 확인해줘"</div><div class="desc">동기화 로그 읽기 &#8594; 오류 확인</div></div>
+      <div class="memory-item"><div class="name">"보고서 만들어줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run report [날짜]</span></div><div class="desc">daily_report.py &#8594; .md 파일</div></div>
+      <div class="memory-item"><div class="name">"브리핑 발송해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run webhook</span></div><div class="desc">Slack Webhook 간단 브리핑</div></div>
+      <div class="memory-item"><div class="name">"데일리 지표 브리핑 발행해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run briefing</span></div><div class="desc">Amplitude+Notion+Slack 정식 브리핑</div></div>
+      <div class="memory-item"><div class="name">"CAC 리포트 실행해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run cac</span></div><div class="desc">매체별 CAC &#8594; Notion+Slack</div></div>
+      <div class="memory-item"><div class="name">"블로그 리포트 실행해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run blog [날짜]</span></div><div class="desc">블로그 성과 &#8594; Notion+Slack</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>네이버 SA</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item"><div class="name">"키워드 분석해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run sa-keyword</span></div><div class="desc">주간 키워드 성과 분석</div></div>
+      <div class="memory-item"><div class="name">"네이버SA 조정안 보여줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run sa-prerun</span></div><div class="desc">CPC 사전 조정안 (적용 X)</div></div>
+      <div class="memory-item"><div class="name">"SA 조정 영향 분석해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run sa-impact</span></div><div class="desc">before/after 성과 영향 분석</div></div>
+      <div class="memory-item"><div class="name">"SA 강제 적용해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run sa-apply</span></div><div class="desc">CPC 실적용 (차단 시 --force-apply)</div></div>
+      <div class="memory-item"><div class="name">"입찰가 롤백해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run rollback</span></div><div class="desc">bid_logs 기반 입찰가 되돌리기</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>Apple Search Ads</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item"><div class="name">"ASA 조정안 보여줘"</div><div class="desc">Apple SA CPT 사전 조정안 (운영 전)</div></div>
+      <div class="memory-item"><div class="name">"ASA 입찰가 롤백해줘"</div><div class="desc">asa_bid_logs 기반 CPT 롤백</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>광고소재</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item"><div class="name">"소재 기획안 만들어줘"</div><div class="desc">brief_json_generator.py &#8594; Figma 연동 JSON</div></div>
+      <div class="memory-item"><div class="name">"메타 소재 만들어줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run ad-pipeline</span></div><div class="desc">Figma+카피+렌더링 &#8594; 4사이즈 PNG</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>위클리 & 업무 관리</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item"><div class="name">"다음 주 위클리 만들어줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run weekly</span></div><div class="desc">Notion 위클리 페이지 생성</div></div>
+      <div class="memory-item"><div class="name">"주간 회고 정리해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/run retro [날짜]</span></div><div class="desc">Claude 분석 &#8594; Notion+Slack</div></div>
+      <div class="memory-item"><div class="name">"슬랙 태그 정리해줘"</div><div class="desc">멘션 &#8594; 위클리 to-do (MCP 직접)</div></div>
+      <div class="memory-item"><div class="name">"오늘 업무 정리"</div><div class="desc">위클리 해당 요일칸 정리 (MCP 직접)</div></div>
+      <div class="memory-item"><div class="name">"마케팅 백로그 지연 체크해줘"</div><div class="desc">유입/프로모션 기한 지연 Task &#8594; Slack DM</div></div>
+      <div class="memory-item"><div class="name">"전사 지연 체크해줘"</div><div class="desc">전체 EPIC 기한 지연 Task &#8594; 데일리티타임 채널</div></div>
+      <div class="memory-item"><div class="name">"프로모션 Task 생성해줘" <span style="color:#d2a8ff;font-size:10px;margin-left:4px">/promo-create</span></div><div class="desc">백로그 확인 &#8594; 역산 일정 &#8594; Notion 생성</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>오피스 자동화</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item new"><div class="name">"회의실 예약해줘"</div><div class="desc">sparkplus_booking.py &#8594; Playwright 3E +14일 예약+Slack</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>월별 시트 & 미디어믹스</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item"><div class="name">"다음 달 시트 만들어줘"</div><div class="desc">monthly_sheet_creator.py &#8594; 전월 복제+검증</div></div>
+      <div class="memory-item"><div class="name">"다음 달 미디어믹스 만들어줘"</div><div class="desc">media_mix_creator.py &#8594; BQ+동적 CAC 가이드라인+2종 생성</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>콘텐츠 & 인플루언서</h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item new"><div class="name">"유튜버 찾아줘"</div><div class="desc">YouTube 채널 발굴 + 스코어링 + Gmail 컨택 &#8594; Notion+Slack</div></div>
+    </div>
+
+    </div><!-- /sub-body -->
+    <h3>Skill 전용 (6개) <span style="font-size:11px;color:#8b949e;font-weight:400">context:fork = 격리 실행</span></h3>
+    <div class="sub-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      <div class="memory-item" style="border-left:3px solid #d2a8ff"><div class="name">/verify <span style="color:#f0b050;font-size:10px">fork</span></div><div class="desc">3-agent 합의 검증 (로직/데이터/호환성)</div></div>
+      <div class="memory-item" style="border-left:3px solid #d2a8ff"><div class="name">/morning-check <span style="color:#f0b050;font-size:10px">fork&#8594;ops-monitor</span></div><div class="desc">launchd + 로그 성공/실패 + 에러 진단 테이블</div></div>
+      <div class="memory-item" style="border-left:3px solid #d2a8ff"><div class="name">/log &lt;대상&gt; [필터]</div><div class="desc">로그 조회 + 자동 진단 (에러, 날짜, 요약)</div></div>
+      <div class="memory-item" style="border-left:3px solid #d2a8ff"><div class="name">/pipeline morning</div><div class="desc">sync &#8594; briefing &#8594; CAC 체인</div></div>
+      <div class="memory-item" style="border-left:3px solid #d2a8ff"><div class="name">/pipeline sa-full</div><div class="desc">SA 영향분석 &#8594; 조정안 &#8594; 적용 체인</div></div>
+      <div class="memory-item" style="border-left:3px solid #d2a8ff"><div class="name">/promo-create</div><div class="desc">프로모션 백로그 + Task 자동 생성</div></div>
+      <div class="memory-item" style="border-left:3px solid #79c0ff"><div class="name">/geo, /geo-audit</div><div class="desc">GEO+SEO 종합 감사, AI 가시성 분석</div></div>
+    </div><!-- /sub-body -->
+    </div>
+    </div>
+  </div>
+
+  <!-- Feedback / Constraints -->
+  <div class="card full-width">
+    <h2><span class="icon">&#9888;</span> 피드백 제약사항 (모든 역할 공통)<span class="card-count">15</span></h2>
+    <div class="card-body">
+    <div class="feedback-item">매체 성과와 미디어믹스는 반드시 BigQuery 실제 전환 데이터 기준 CAC 사용 — Meta/Google이 보여주는 전환 수치는 사용 금지</div>
+    <div class="feedback-item">근거 없는 수치를 임의로 만들지 말 것. 출처는 실제 참조한 것만</div>
+    <div class="feedback-item">제안/질문 전에 실제로 해당되는지 먼저 스스로 검증할 것</div>
+    <div class="feedback-item">분석건 노션 정리 시 인사이트 모음집 하위에 저장, 경로 명시</div>
+    <div class="feedback-item">"오늘 업무 정리" &#8594; 위클리 노션 해당 요일 칸에 바로 정리</div>
+    <div class="feedback-item">아직 준비 안 된 기능(시트/API 미설정)은 자동화에 넣지 않기 — 실제로 돌아가는지 먼저 확인</div>
+    <div class="feedback-item">전환율 비교는 25년 6월 이후 데이터만 유효 (결제정산 반영, 이전 CVR 비교 불가)</div>
+    <div class="feedback-item">자동화 수정 시 기능별로 분리하고, 테스트 먼저 작성 (일회성 제외)</div>
+    <div class="feedback-item">브리핑 기회&액션은 callout 블록 형태 유지 (paragraph/bullet 변경 금지), 3줄 압축</div>
+    <div class="feedback-item">브리핑 액션에서 Claude가 할 수 있는 분석은 직접 수행 후 결과 포함, 사람 액션만 제안</div>
+    <div class="feedback-item">광고소재 이모지 사용 금지 (요청 시에만)</div>
+    <div class="feedback-item">SEO 키워드에서 크루즈·비여행 키워드(주식/환율/부동산 등) 제외</div>
+    <div class="feedback-item">.png 파일인데 실제로는 SVG인 이미지 읽기 금지 — 에러 발생으로 대화가 끊김</div>
+    <div class="feedback-item">자동화 장애 시 "실패했어요"로 끝내지 말고 원인 파악 → 고치기 → 다시 실행까지 한 번에 처리</div>
+    <div class="feedback-item">요일 계산 시 date 명령으로 확인 필수 (추측 금지)</div>
+    </div>
+  </div>
+
+  <!-- Hooks & Rules -->
+  <div class="card full-width">
+    <h2><span class="icon">&#128737;</span> Hooks & Rules <span style="font-size:11px;color:#8b949e;font-weight:400;margin-left:8px">.claude/hooks/ + .claude/rules/ | 2026-03-26 추가</span><span class="card-count">4+3</span></h2>
+    <div class="card-body">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#da3633">Hooks (4개)</div>
+        <div class="dep-row" style="background:#1f1215;border-left:3px solid #da3633">
+          <span class="dep-script" style="color:#da3633">Notification</span>
+          <span class="dep-status" style="color:#8b949e">작업 완료 &#8594; macOS 알림 + Glass 사운드</span>
+        </div>
+        <div class="dep-row" style="background:#1f1215;border-left:3px solid #da3633">
+          <span class="dep-script" style="color:#da3633">PreToolUse [Edit|Write]</span>
+          <span class="dep-status" style="color:#8b949e">protect-files.sh &#8594; 보호 파일 수정 차단 (exit 2)</span>
+        </div>
+        <div class="dep-row" style="background:#1f1215;border-left:3px solid #da3633">
+          <span class="dep-script" style="color:#da3633">PreToolUse [Bash]</span>
+          <span class="dep-status" style="color:#8b949e">block-dangerous-bash.sh &#8594; rm -rf 등 위험 명령 차단</span>
+        </div>
+        <div class="dep-row" style="background:#1f1215;border-left:3px solid #da3633">
+          <span class="dep-script" style="color:#da3633">PostToolUse [Edit|Write]</span>
+          <span class="dep-status" style="color:#8b949e">dual-update-reminder.sh &#8594; GA 레포 동기 리마인더</span>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#8b949e">
+          보호 대상: shared/config.py, api_credentials.md, .env, credentials.json, service-account-key
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#f0b050">Rules (3개) <span style="font-size:11px;font-weight:400;color:#8b949e">&#8212; paths 기반 조건부 로딩</span></div>
+        <div class="dep-row" style="background:#1a1714;border-left:3px solid #f0b050">
+          <span class="dep-script" style="color:#f0b050">python-scripts.md</span>
+          <span class="dep-status" style="color:#8b949e">3_데이터/daily/**/*.py &#8594; SRP, shared/ 재사용, TDD, dual-update</span>
+        </div>
+        <div class="dep-row" style="background:#1a1714;border-left:3px solid #f0b050">
+          <span class="dep-script" style="color:#f0b050">notion-work.md</span>
+          <span class="dep-status" style="color:#8b949e">**/*notion*, **/*weekly* &#8594; DB ID, 텍스트 계층, MCP 제약</span>
+        </div>
+        <div class="dep-row" style="background:#1a1714;border-left:3px solid #f0b050">
+          <span class="dep-script" style="color:#f0b050">data-analysis.md</span>
+          <span class="dep-status" style="color:#8b949e">3_데이터/** &#8594; BQ CAC 필수, 임의 수치 금지, 6월 이후 CVR</span>
+        </div>
+
+        <div style="font-size:13px;font-weight:600;margin:14px 0 8px;color:#f85149">Deny (10개)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <span class="tag tag-constraint">rm -rf /</span>
+          <span class="tag tag-constraint">rm -rf ~</span>
+          <span class="tag tag-constraint">sudo rm -rf</span>
+          <span class="tag tag-constraint">Write(*.env)</span>
+          <span class="tag tag-constraint">Write(*credentials*)</span>
+          <span class="tag tag-constraint">Edit(*.env)</span>
+          <span class="tag tag-constraint">Edit(*credentials*)</span>
+          <span class="tag tag-constraint">*service-account-key*</span>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center;color:#484f58;margin-top:30px;font-size:12px">Generated by Claude Code | 2026-03-27 (하네스 최적화: Hooks 4개 + Rules 3개 + Deny 10개, 에이전트 model/permissionMode/maxTurns, 스킬 context:fork, 932 테스트, 37 메모리, 피드백 15개, 16 모듈 패키지)</p>
+
+
+
+<script>
+// Card-level accordion
+document.querySelectorAll('.card h2').forEach(h2 => {
+  h2.addEventListener('click', (e) => {
+    // Don't toggle if clicking inside h2 links etc
+    if (e.target.closest('a')) return;
+    h2.closest('.card').classList.toggle('collapsed');
+  });
+});
+
+// H3 sub-section accordion
+document.querySelectorAll('.card h3').forEach(h3 => {
+  h3.addEventListener('click', () => {
+    h3.classList.toggle('collapsed');
+    const body = h3.nextElementSibling;
+    if (body && body.classList.contains('sub-body')) {
+      body.style.display = h3.classList.contains('collapsed') ? 'none' : '';
+    }
+  });
+});
+
+// Start with some cards collapsed (the longer ones)
+document.addEventListener('DOMContentLoaded', () => {
+  const cards = document.querySelectorAll('.card');
+  // Collapse cards that are "informational" - keep flow chart open
+  const collapseKeywords = ['shared/ 모듈', '수동 트리거', '피드백', 'Hooks', 'Claude 분석'];
+  cards.forEach(card => {
+    const h2 = card.querySelector('h2');
+    if (!h2) return;
+    const text = h2.textContent;
+    if (collapseKeywords.some(kw => text.includes(kw))) {
+      card.classList.add('collapsed');
+    }
+  });
+});
+</script>
+
+<!-- Modal overlay -->
+<div id="memoryModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const MEMORY_DATA = {
+  "ad_pipeline": "## 광고소재 자동 생성 파이프라인\n\n### 위치\n`1_퍼포먼스/Paid/ad_pipeline/`\n\n### 전체 워크플로우 (v2, 2026-03-16)\n```\n[1] 디자이너: Figma 마스터 템플릿 (# 접두사 레이어 규칙)\n[2] figma_template_sync.py: Figma API → HTML/CSS 자동 변환\n[3] variation_matrix.py: 변형 매트릭스 (템플릿 × 여행지 × 카피방향 × 이미지)\n[4] template_renderer.py: Playwright 일괄 렌더링 → PNG + manifest.json\n[5] ad_register.py: Meta API 업로드 + UTM 자동 세팅 → PAUSED 등록\n[6] ad_performance_check.py: BQ CAC 기반 성과 판단 → 슬랙 추천 → on/off\n```\n\n### 파일 구조\n```\nad_pipeline/\n  # 기존 (수정됨)\n  ad_pipeline.py              — 기존 A/B/C 파이프라인 (하위 호환)\n  copy_generator.py           — 기본 + 방향별(price/experience/trust) 카피 생성\n  photo_fetcher.py            — Figma 전용 (Pexels fallback 제거됨, 2026-03-16)\n  site_verifier.py            — tripstore.kr 실시간 가격 검증 (pricing-calendar API)\n  template_renderer.py        — Jinja2 + Playwright HTML→PNG\n  config.yaml                 — 여행지·사이즈·figma_templates·performance_rules (target_id 포함)\n\n  # 템플릿 자동화\n  figma_template_sync.py      — Figma → HTML 자동 변환\n  variation_matrix.py         — 변형 매트릭스 생성 오케스트레이터\n\n  # Meta 등록\n  utm_convention.py           — UTM 네이밍 규격 (media_cac_report CASE WHEN 호환)\n  meta_ad_manager.py          — Meta 이미지 업로드 + Creative + Ad + Insights 조회\n  ad_register.py              — manifest 기반 등록 CLI (dry-run/apply)\n  ad_register_simple.py       — 간편 등록 CLI (이미지 폴더 → Meta 직접 등록)\n  ad_registry.py              — utm_content ↔ ad_id 통합 매핑 (BQ↔Meta 브릿지)\n  reports/                    — registration_report_*.json 저장소\n\n  # 성과 관리\n  performance_rules.py        — BQ CAC 기반 룰 엔진\n  ad_controller.py            — Meta Ad 상태 변경 (PAUSE/ACTIVATE)\n\n3_데이터/daily/\n  ad_performance_check.py     — thin launcher → ad_perf/ 패키지\n  ad_perf/                    — 소재 성과 자동 관리 패키지\n    main.py                   — 오케스트레이션 (Sync Gate → BQ → Meta → 평가 → 슬랙)\n    data.py                   — BQ 예약건수 + Meta Insights ad-level 소진\n    registry.py               — ad_registry.py 매핑 래퍼\n    rules.py                  — performance_rules.py 재사용\n    slack_msg.py              — 슬랙 메시지 포맷\n    log_io.py                 — JSON 감사 로그 (ad_perf_logs/)\n    config.py                 — 상수, 경로\n```\n\n### 사이트 실시간 검증 (site_verifier.py, 2026-03-16 추가)\n- `api.tripstore.kr/search/travels/pricing-calendar` API 직접 호출 (Playwright 불필요)\n- `placeIds` 파라미터로 여행지별 필터링 (config.yaml의 `target_id`)\n- 카피 생성 시 자동 검증 (copy_generator.py `--verify`/`--no-verify`)\n- config.yaml 가격 대비 10% 이상 차이 시 경고 + 사이트 실시간 가격 우선 사용\n\n### 카피 방향 (copy_generator.py)\n- `price` — 가격 어필: 초특가, 할인 강조\n- `experience` — 경험 어필: 감성, 설렘\n- `trust` — 신뢰 어필: 후기, 숫자, 사회적 증거\n\n### 변형 매트릭스 사용법\n```bash\n# 미리보기\npython3 variation_matrix.py --dest 다낭,오사카 --templates A,B --preview\n# 최소 테스트\npython3 variation_matrix.py --dest 다낭 --templates A --directions price --copies 1 --photos 1 --no-ai\n# 전체 생성\npython3 variation_matrix.py --dest 다낭 --templates A,B --directions price,trust --copies 2 --photos 3\n```\n\n### Meta 등록 — manifest 기반 (full pipeline)\n```bash\npython3 ad_register.py --manifest output/manifest.json --adset-id 12345 --dry-run\n...(이하 생략)",
+  "amplitude_event_taxonomy": "# 트립스토어 Amplitude 이벤트 택소노미\n\n> 원본: 로그 히스토리 문서 (Google Sheets)\n> CSV 백업: `/Users/do/Downloads/로그 히스토리 문서 - 기본) 로그 요청사항.csv`\n> 최종 업데이트: 2026-03-16 기준 학습\n\n## 기본 규칙\n- property 값 없는 경우: 숫자/문자 모두 `null` (단, `none`으로 요청 시 `none`)\n- 상태 변동 시 `last_updated_at`에 날짜 기록\n- 컬럼 구조: github | 상태 | 국내/해외 | 사업분야 | 순서 | last_updated_at | 화면 | 로그명 | Property | 로그 발생 시점 | Property 설명 | Comments | 우선순위 | 지속성 | 작업자 | 요청자 | Amplitude | 채널연동사 Amplitude | Braze | Appsflyer | Google | Facebook | GA(Web) | GA(App)\n\n## 이벤트 카테고리 & 주요 이벤트\n\n### 1. 공통 (앱 기본)\n| 이벤트 | Property | 설명 | 상태 |\n|--------|----------|------|------|\n| `app_open` | - | 앱 실행 | 완료 |\n| `push_open` | campaign, group_name | 푸시 오픈 | 완료 |\n| `alarm_complete` | - | 알림 신청 완료 알럿창 조회 | 완료 |\n| `alarm_click_button` | button_name={동의하고 알림받기, 확인, 채널추가, 닫기} | 알림신청 알럿 버튼 클릭 | 완료 |\n| `splash_ad_clik` | startdate={YYMMDD} | 스플래시 광고 클릭 | 완료 |\n| `login_signup_complete` | - | 회원가입 완료 | 완료 |\n| `login_complete` | - | 로그인 완료 | 완료 |\n| `login_complete_total` | - | 회원가입/로그인 완료 (광고 캠페인용) | 완료 |\n\n### 2. 탭바\n| 이벤트 | Property | 설명 |\n|--------|----------|------|\n| `tabbar_click_home` | path={main, search, list, pick_list, accom, menu, compare, benefits} | 하단탭바 홈 클릭 |\n| `tabbar_click_search` | path=위와 동일 | 하단탭바 검색 클릭 |\n| `tabbar_click_menu` | path=위와 동일 | 하단탭바 마이 클릭 |\n| `tabbar_click_compare` | path=위와 동일 | 하단탭바 상품비교 클릭 |\n| `tabbar_click_benefits` | path=위와 동일 | 하단탭바 혜택 클릭 |\n\n### 3. 모바일웹 앱설치 유도\n| 이벤트 | Property | 설명 |\n|--------|----------|------|\n| `installbanner_view` | campaign, title, button_name, position={top,bottom}, pageUrl, prevUrl | 앱설치 배너 조회 |\n| `installbanner_click_install` | 위와 동일 | 앱설치 배너 CTA 클릭 |\n| `installbanner_click_close` | 위와 동일 | 앱설치 배너 닫기 |\n| `install_popup_view` | type={plp_pick, pdp_pick, pdp_30s, pdp_tripcode} | 앱설치 모달 조회 |\n| `install_popup_click` | type, button_name | 앱설치 모달 버튼 클릭 |\n\n캠페인명 규칙: `YYMMDD_[강조포인트]` (pick/compare/sales/appcoupon)\n\n### 4. 플로팅 배너\n| 이벤트 | Property | 설명 |\n|--------|----------|------|\n| `floatingbanner_view` | campaign, title | 플로팅 배너 조회 |\n| `floatingbanner_click` | campaign, title | 플로팅 배너 클릭 |\n| `floatingbanner_click_close` | campaign, title | 플로팅 배너 닫기 |\n\n캠페인명 규칙: `YYMMDD_[유형]_[상세]` (e.g., 240201_luckydraw_rimowa)\n\n### 5. 회원 - 내정보 / 내예약 / 내쿠폰\n| 이벤트 | 설명 |\n|--------|------|\n| `my_info_view` | 내 정보 조회 |\n| `my_info_click_withdrawal_reasons` | 탈퇴 이유 클릭 |\n| `my_rsv_list_view` | 내 예약 목록 조회 |\n| `my_rsv_detail_view` | 내 예약 상세 조회 (status: 예약신청/예약확정/출발/취소요청 중/취소) |\n| `my_rsv_detail_click_button` | 상세 내 버튼 클릭 |\n| `my_rsv_detail_click_recommendation` | 예약 내 추천상품 클릭 (pre_* / recom_* property로 원래 상품 vs 추천 상품 구분) |\n| `my_coupon_view` | 내 쿠폰함 조회 |\n| `my_coupon_click_button` | 쿠폰코드 등록 |\n\n### 6. 설정\n| 이벤트 | Property | 설명 |\n|--------|----------|------|\n| `setting_view` | - | 설정 화면 진입 |\n| `info_accept` | status={true/false} | 일반 정보 알림 on/off |\n| `email_accept` | status={true/false} | 이메일 수신 동의 on/off |\n| `sms_accept` | status={true/false} | SMS 수신 동의 on/off |\n| `push_accpet` | status={true/false} | 푸시 수신 동의 on/off |\n\n...(이하 생략)",
+  "api_credentials": "# API & Credentials 설정\n\n## 스프레드시트 ID\n- 대시보드: `1-577P8EceQShZcO8ONPJesGZGT7qMo3CVRk2pkyGrCM`\n- 쉬움컴퍼니: `1H4_IoDc0a2dBR_OrxYkHQAlOk8CP9Yj-CAY9ZYgLFpI`\n- 빅인: `1FLdKM7NECOGjPBm4xqQG5p6RoO7xInC0KM9xZN0L6uw`\n- 프로모션 캘린더: `1XEDzfLJ5BYMf2EfE5-KiC7vOCzB5LQ99Fi4ih7ewrhs` (시트: `월별 일정`)\n\n## Google Ads API\n- 설정 파일: `3_데이터/tools/google-ads.yaml`\n- MCC ID: `3909028954`, 활성 계정: `9152282635` (트립스토어_2023.06)\n- GCP 프로젝트: `tripstor-mkt` (Google Ads API 활성화됨)\n- OAuth2 Client ID: `754054977082-snn68lskps1kroi16kl042lmr9qcsh6a.apps.googleusercontent.com`\n- 하위 계정: 트립스토어(3226014666), 트립스토어_2023.06(9152282635), 트립스토어(2017-2022)(4912712350), 트립스토어_리타겟팅(4969928991)\n\n## Meta Marketing API\n- 광고 계정: `act_904739996357091`, 비즈니스 ID: `803624043135354`\n- 토큰: `.env`의 `META_ACCESS_TOKEN` (시스템 사용자 토큰)\n- Graph API v21.0, adset 레벨, `time_increment=1`(일별), 페이지네이션 지원\n- 대상 시트: Media_Meta_RD (A=일, B=캠페인이름, C=광고세트이름, D=노출, E=링크클릭, F=지출금액(KRW), G=앱설치)\n- 앱설치: actions 배열에서 `mobile_app_install` 추출\n\n## 카카오모먼트 API (블로커)\n- 앱 ID: `459758`, REST API 키: `.env`의 `KAKAO_REST_API_KEY`\n- 광고계정 ID: `690742`, 보고서 ID: `131801`\n- **블로커**: `moment_management` 권한 없음 → 앱 Owner(`trip@tripstore.kr`)가 추가 기능 신청 필요\n- 현재 `go@tripstore.kr`은 Editor (권한 신청 불가)\n- 대상 시트: Media_Kakao_RD (A=번호, B=광고그룹이름, C=일, D=비용, E=노출수, F=클릭수, G=발송수, H=열람수, I=전체클릭수, J=열람률, K=메시지클릭률)\n- [CRM]KakaoMsg: E~H는 Media_Kakao_RD 기반, I열(발송비용)은 빅인 동기화\n- 수동 프로세스: 카카오모먼트 로그인 → 보고서 다운로드 → Media_Kakao_RD에 복붙\n- 권한 승인 후: daily_sync.py에 `sync_kakao_to_dashboard()` 추가\n\n## 네이버 SA API (searchad.naver.com)\n- `.env` 키: `NAVER_SA_API_LICENSE`, `NAVER_SA_SECRET_KEY`, `NAVER_SA_CUSTOMER_ID`\n- API URL: `https://api.naver.com`\n- 인증: HMAC-SHA256 서명 (`{timestamp}.{method}.{uri}`)\n- 헤더: `X-Timestamp`, `X-API-KEY`(license), `X-Customer`(customer_id), `X-Signature`\n- 주요 엔드포인트:\n  - `GET /ncc/campaigns` → 캠페인 목록\n  - `GET /ncc/adgroups?nccCampaignId=` → 광고그룹 목록\n  - `POST /stat-reports` → 키워드별 통계 리포트 생성\n  - `GET /stat-reports/{id}` → 리포트 상태/다운로드 URL\n- 네이버 SA 데이터는 쉬움컴퍼니 → [Con]NaverSA_MO/PC 경로로 동기화 (daily_sync.py의 쉬움 동기화에 포함)\n\n## YouTube Data API v3\n- GCP 프로젝트: `tripstor-mkt` (754054977082)\n- API Key: `.env`의 `YOUTUBE_API_KEY` (API 제한: youtube.googleapis.com만)\n- 쿼터: 일 10,000 units, **무료** (과금 없음)\n- 용도: 인플루언서 스카우트 (`influencer_scout.py`)\n- 1회 실행 약 680 units (playlistItems 최적화 후)\n\n## Google Search Console API\n- GCP 프로젝트: `tripstor-mkt` (searchconsole.googleapis.com 활성화)\n- OAuth 클라이언트: Google Ads와 동일 (별도 스코프로 토큰 발급)\n- 토큰 파일: `3_데이터/tools/gsc_token.json`\n- 인증 스크립트: `3_데이터/tools/gsc_auth.py`\n- 스코프: `webmasters.readonly`\n- 연결된 사이트: `sc-domain:tripstore.kr`, `https://www.tripstore.kr/blog/`, `https://www.tripstore.kr/`\n- 사용법: `build('searchconsole', 'v1', credentials=creds)` → `searchanalytics().query()`\n- 주요 dimensions: `date`, `page`, `query`, `device`, `country`\n\n## Notion API (내부 통합) — REST API 직접 호출용\n- 토큰: `.env`의 `NOTION_API_TOKEN` (`ntn_` 접두사)\n- Notion-Version: `2022-06-28`\n- Python: `urllib.request` + `certifi` SSL\n- 블록 제한: children 최대 100개, 초과분은 `PATCH blocks/{id}/children`\n...(이하 생략)",
+  "app_vs_web_ads": "# 앱설치광고 vs 웹광고 비교 분석 (2026-03-21)\n\n## 핵심 결론\n웹광고를 메인으로 유지하되, 웹→앱 전환을 극대화하는 것이 최적 전략. ACI는 현 수준 유지(줄이면 안 됨).\n\n## CAC 비교 (BQ 28일, mkt_dashboard_exclude_cost 중복제거 + mkt_dashboard_reservation)\n- Naver BSA: 65.5K (전체 최저)\n- Naver SA: 82.9K\n- Google ACI: 103.8K\n- Google PMax: 124.6K\n- Google ACe: 145.8K\n- Meta A+SC: 179.5K\n\n## 채널별 예약 플랫폼 분포 (user_reservation_log3 + mkt_user_reservation_day 조인)\n- ACI → 94.9% App / ACe → 92.0% App\n- Meta → 82.5% App / PMax → 66.9% App\n- Naver SA → 26.8% App, 73.2% Web (하지만 앱 기여가 실질 ~35%)\n\n## Web→App 전환 여정 (전체 3,531건 중 460건 = 13%)\n- 전환 소요시간 16.9h (전 여정 중 최단)\n- 터치포인트 4.2회 (전 여정 중 최다 → 고의도 유저)\n- Paid 비중 28.5%\n- 유료 채널 기여: Naver SA 81건(17.5%) > BSA 26건 > PMax 12건\n\n## ACI 유지해야 하는 이유\n- 객단가 3,279K로 전 채널 최고 (SA 2,460K 대비 33% 높음)\n- App→App 여정이 전체 예약의 52% → 이 파이프라인의 시드 역할\n- 앱을 직접 설치하는 유저 = 고가 상품 구매 경향\n\n## BQ 비용 조회 시 주의\n- `mkt_dashboard_exclude_cost` 테이블에 중복 row 존재 (같은 날짜+캠페인이 3~4개)\n- 반드시 `SELECT DISTINCT base_date, utm_source, utm_campaign, spend` 으로 dedupe 후 집계\n- utm_source가 'google', 'naver', 'meta' 단위 → utm_campaign으로 채널 구분 필요\n\n## 심화 분석 (2026-03-23 추가)\n\n### Web→App 전환 여정 (90일, mkt_user_visit_b + ods_reservations)\n- 9,497명 웹→앱 전환, 34.8% 예약 (3,307명) — 일반 앱 유저 대비 매우 높은 전환율\n- 웹→앱: 평균 117.7h (4.9일), 63% 24시간 내 전환\n- 앱→예약: 평균 39.8h (1.7일) — 앱 설치 후 빠른 구매 결정\n- AOS 36.4% 예약률 vs iOS 30.1% — iOS가 웹→앱 전환에 9시간 더 소요\n\n### iOS vs AOS LTV (180일 앱 유저)\n- AOS: 97,536명, 예약률 31.9%, 재구매율 65.2%, LTV 10.05M\n- iOS: 28,256명, 예약률 28.3%, 재구매율 60.6%, LTV 8.95M\n- 반전: iOS 재구매 간격 31.6일(AOS 36.3일 대비 13% 빠름), 재구매 객단가 2.74M(AOS 2.69M)\n- iOS는 첫 구매 도달 어려우나 구매자당 LTV는 우수\n\n### iOS 매체 귀속 (AppsFlyer 28일)\n- Google Ads: AOS 5,421 / iOS 0 (AOS 전용)\n- Meta: AOS 1,151 / iOS 0 (ATT로 귀속 불가)\n- Organic: AOS 7,969 / iOS 2,327 (iOS 22.6%)\n- iOS 오가닉의 88.6%가 앱스토어 직접 유입 (웹 경유 11.4%)\n- Meta가 iOS 방문 1,453명에 도달 중이지만 ATT denied 65%로 설치 귀속 0건\n\n### ASA 투자 판단\n- 결론: 조건부 소규모 테스트 — 지금 바로 올인 안 됨\n- 순서: (1) Meta SKAN 확인 → (2) Google ACI iOS 캠페인 분리 → (3) ASA 카테고리 키워드 테스트 (월 200만, 브랜드 키워드 제외)\n- cannibalization 기준: ASA 집행 중 오가닉 10% 이상 감소 → 즉시 중단\n- Target CAC 상한: ~85K (유저당 기대매출 854K 기준 ROAS 10x)\n\n### iOS 광고 ROI 비교 의사결정 (2026-03-23)\n- 핵심: 같은 100만원 AOS 추가 vs iOS 신규, AOS가 유리\n- AOS ROAS: 37.0x (CPI 9,738원, 예약률 12.6%, 객단가 2,863K)\n- iOS는 유저 품질 우수(예약률 13.7%, 객단가 2,980K, 재구매 31.6일) → Revenue/Install +13.2%\n- 손익분기 iOS CPI: 11,973원 = AOS CPI x 1.23 → 여유 좁음\n- AOS diminishing returns 완만(예산 2배에 CPI +20%) → 분산 투자 긴급성 낮음\n- 최종: Conditional Go — AOS 우선, Google ACI iOS 소규모 테스트(일 50K)\n- Go/No-Go: CPI <12K Go, 12-15K 관찰, >15K 중단. Meta iOS No-Go\n\n### 이전 iOS 캠페인 실적 + 어트리뷰션 이슈 발견 (2026-03-23)\n- google_ios_ac_ua_purchase_2512: 2025-12-22~2026-01-09 (19일), 비용 2,217K, PAUSED\n- Google Ads 자체 보고: 225 conversions (cost/conv 8,957원)\n- BQ(mkt_dashboard_reservation): 예약 귀속 **0건** → BQ CAC 무한대\n- AF(appsflyer_2025.installs): iOS googleadwords_int **역사상 0건** (2025-08 이후 전체)\n- kpi_daily_new 증분 분석: 캠페인 중 iOS 신규유저 +3.3%(+7명/일), 통계적 유의성 없음\n\n### iOS 어트리뷰션 구조적 한계 (중요)\n- App Store는 UTM referrer를 전달하지 않음 → mkt_user_visit_b에 utm_source 안 붙음\n...(이하 생략)",
+  "apple_sa_optimizer": "## 개요\n\n네이버SA CPC 옵티마이저(`sa_optimizer/`)와 동일한 아키텍처로 구현된 Apple Search Ads CPT 자동 조정 시스템. 2026-03-21 구현 완료, API 인증서 발급 후 운영 시작 예정.\n\n**Why:** iOS 앱 유저 확보 채널인 Apple Search Ads에서도 CPA 기반 자동 입찰 최적화를 통해 효율 개선.\n\n**How to apply:** 네이버SA와 동일한 워크플로우 (dry-run → 사전분석 → 실적용). API 인증서 발급 및 BQ utm_source 매핑 확인 후 파일럿 시작.\n\n## 조정 기준 상수 (네이버SA와의 차이)\n\n| 상수 | Apple SA | 네이버SA | 이유 |\n|------|----------|---------|------|\n| `TARGET_CPA` | ₩120,000 | ₩80,000 | iOS 유저 CAC가 높음 |\n| `MIN_COST_FOR_PAUSE` | ₩150,000 | ₩100,000 | 높은 CPT 반영 |\n| `CPT_FLOOR` | ₩100 | ₩70 | Apple 최소 입찰 기준 |\n| `CPT_CEILING` | ₩15,000 | ₩10,000 | iOS 키워드 상한 |\n| `SANITY_ABS_DELTA_WARN` | ₩1,500 | ₩1,000 | CPT가 높으므로 |\n| `UTM_SOURCE` | `apple_sa` | `naver_sa` | BQ 전환 매핑 |\n\nCPA 규칙 6단계, 안전장치(±30%, 브랜드 보호, 롤백 쿨다운)는 동일.\n\n## API 인증 차이\n\n- **네이버SA**: HMAC-SHA256 서명 (timestamp + method + uri)\n- **Apple SA**: OAuth 2.0 Client Credentials + ES256 JWT\n  - 필요: `pip install PyJWT cryptography`\n  - 환경변수 5개: `APPLE_SA_CLIENT_ID`, `APPLE_SA_TEAM_ID`, `APPLE_SA_KEY_ID`, `APPLE_SA_PRIVATE_KEY_PATH`, `APPLE_SA_ORG_ID`\n  - 토큰 1시간 캐시 + 자동 갱신\n\n## 패키지 구조\n\n```\nasa_optimizer/\n├── __init__.py\n├── config.py       # TARGET_CPA 120K, CPT_FLOOR/CEILING 등\n├── data.py         # Apple SA API + BQ 전환 매핑\n├── rules.py        # 6단계 CPA 규칙 (taps 기반)\n├── sanity.py       # 4종 이상 조정 검증\n├── apply.py        # PUT targetingkeywords/bulk\n├── log_io.py       # asa_bid_logs/ JSON 로그\n├── slack_msg.py    # Slack DM 메시지 빌더\n└── main.py         # 오케스트레이션\n\nshared/apple_search_ads.py  # OAuth 2.0 JWT 인증 + API 호출\napple_sa_bid_optimizer.py   # shim 엔트리포인트\nrollback_asa_bids.py        # 롤백 스크립트\ntests/test_asa_optimizer.py # 33개 테스트\n```\n\n## 용어 차이\n\n| 네이버SA | Apple SA |\n|---------|---------|\n| CPC (Cost Per Click) | CPT (Cost Per Tap) |\n| 클릭 (clicks) | 탭 (taps) |\n| nccKeywordId | keywordId (숫자) |\n| /ncc/keywords | /campaigns/{id}/adgroups/{id}/targetingkeywords |\n| bidAmt (정수) | bidAmount.amount (문자열, KRW) |\n\n## 운영 전 필요 작업\n\n1. Apple Search Ads API 인증서 발급 (App Store Connect → Keys)\n2. .env에 5개 환경변수 추가\n3. BQ `mkt_dashboard_reservation`에서 `utm_source = 'apple_sa'` 데이터 확인\n4. `python3 apple_sa_bid_optimizer.py` dry-run 테스트\n5. `--pilot-top 5` 소규모 파일럿 → 전체 적용\n\n## 로그 & 파일 위치\n\n| 파일 | 위치 |\n|------|------|\n| 패키지 | `3_데이터/daily/asa_optimizer/` (9개 모듈) |\n| Shim | `3_데이터/daily/apple_sa_bid_optimizer.py` |\n| 롤백 | `3_데이터/daily/rollback_asa_bids.py` |\n| 실행 로그 | `3_데이터/daily/apple_sa_bid_optimizer.log` |\n| 변경 로그 | `3_데이터/daily/asa_bid_logs/YYYY-MM-DD_asa_bid_changes.json` |\n| 롤백 로그 | `3_데이터/daily/asa_bid_logs/YYYY-MM-DD_rollback.json` |\n| 테스트 | `3_데이터/daily/tests/test_asa_optimizer.py` (33개) |",
+  "automation_schedule": "## 실행 순서 의존성\n\nMail(10:00) / OCI(10:00) → SA영향분석(10:00, 월목) → Sync(10:05) / Blog(10:05) → Briefing(10:10) / BacklogAlert(10:20) / CAC(10:25) → AllDeadlineAlert(10:30, 영업일) / SA사전조정안(10:30, 월목) → 소재성과체크(11:00) / 네이버SA적용(11:00, 월목).\n\n- Briefing과 CAC는 **Sync Gate**(`/tmp/sync_done_YYYY-MM-DD` 마커 파일)로 Sync 완료를 확인 후 실행\n- 마커 미존재 시 30초 간격 최대 15분 폴링 대기, 타임아웃 시 Slack DM 알림 후 스킵\n- `--force` 또는 날짜 지정 시 바이패스\n- Blog, SA영향분석, BacklogAlert는 직접 API 조회(Sync 무관)\n\n## 자동 Wake\n\n`pmset repeat wakeorpoweron MTWRFSU 09:55:00` + `com.tripstore.wake-keeper`(caffeinate 80분)로 9:55~11:15 깨어있기 보장. GA는 11:15 모니터링 전용 (직접 실행 안 함, 미완료 시 Slack 알림만).\n\n## launchd 스케줄\n\n| 스케줄 | 이름 | plist | 스크립트 | 모니터링 | 설명 |\n|--------|------|-------|----------|----------|------|\n| 매일 09:55 | Wake Keeper | `com.tripstore.wake-keeper` | caffeinate -s -t 4800 | — | 80분간 sleep 방지 (9:55~11:15) |\n| 매일 10:00 | 메일 점검 | `com.tripstore.mail-summary` | `daily_mail_summary.py` | — | 전일 메일 점검 → 슬랙 DM 발송 |\n| 매일 10:00 | OCI Upload | `com.tripstore.oci-upload` | `oci_upload.py` | — | BQ GCLID 예약 → Google Ads 오프라인 전환 업로드 |\n| 매일 10:05 | Daily Sync | `com.tripstore.daily-update` | `daily_sync.py` | GA 11:15 | BQ/쉬움/빅인/GAds/Meta → 대시보드 시트. 완료 시 `/tmp/sync_done_YYYY-MM-DD` 마커 생성 |\n| 매일 10:05 | Blog Daily Report | `com.tripstore.blog-daily-report` | `blog_daily_report.py` | — | 블로그 성과 분석 → 노션+슬랙 DM (공휴일만 스킵, 주말 실행). Sync 무관, Claude CLI 경합 방지 위해 Briefing보다 5분 선행 |\n| 매일 10:10 | Daily Briefing | `com.tripstore.daily-briefing` | `daily_metrics_briefing.py` | GA 11:15 | 전일 성과 → 노션+슬랙 브리핑. **Sync Gate 대기** |\n| 평일 10:25 | Media CAC Report | `com.tripstore.media-cac-report` | `media_cac_report.py` | GA 11:15 | 매체별 CAC 분석 → 노션+슬랙 DM (공휴일만 스킵, 월요일 금~일 합산). **Sync Gate 대기** |\n| 매일 10:20 | Backlog Deadline Alert | `com.tripstore.backlog-deadline-alert` | `backlog_deadline_alert.py` | — | 마케팅(유입/프로모션) 기한 지연 Task → 슬랙 DM (0건 스킵) |\n| 영업일 10:30 | All Deadline Alert | `com.tripstore.all-deadline-alert` | `all_deadline_alert.py` | — | 전사 기한 지연 Task PM별 → 데일리티타임 (기타/기타-운영 EPIC 제외) |\n| 매일 11:00 | Ad Performance Check | `com.tripstore.ad-performance-check` | `ad_performance_check.py` → `ad_perf/` | — | 소재 성과 체크 (BQ CAC + Meta Insights) → 슬랙 PAUSE 추천. **Sync Gate 대기**. 현재 dry-run 모드 |\n| 매주 월/목 10:00 | SA 조정 영향 분석 | `com.tripstore.sa-impact-report` | `sa_impact_report.py` | — | CPC 조정 후 7일 성과 영향 분석 → 노션+슬랙 |\n| 매주 월/목 10:30 | SA 사전 조정안 | `com.tripstore.naver-sa-prerun` | `naver_sa_bid_optimizer.py --prerun` | — | CPC 조정 사전분석 → **노션 사전분석 페이지** + 슬랙 DM |\n| 매주 월/목 11:00 | Naver SA Optimizer | `com.tripstore.naver-sa-optimizer` | `naver_sa_bid_optimizer.py --apply --verify-after` | — | CPC 실적용 + API 검증 → **노션 적용결과 페이지** + 슬랙 DM |\n| 매주 월 10:30 | 타임라인 오픈 알림 | `com.tripstore.timeline-weekly-alert` | `timeline_weekly_alert.py` | — | 전사 타임라인 Task[오픈] 이번 주 오픈 예정 → 데일리티타임 |\n| 매주 목 11:00 | Weekly 생성 | `com.tripstore.weekly-create` | `weekly_create.py` | — | 다음 주 노션 위클리 페이지 생성 |\n...(이하 생략)",
+  "backlog_alert": "## Feature 1: 백로그 기한 지연 알림 (backlog_alert/)\n\n- **2026-03-20 신규**: `backlog_alert/` 6모듈 + `backlog_deadline_alert.py` shim\n- **2026-03-24 확장**: 전체 EPIC 대응 (`all_deadline_alert.py`), Won't Do 제외, 백로그 \"제외\" 상태 필터 추가\n- **2026-03-25 PM별 그룹핑**: PM people 속성 추출, `group_by=\"pm\"` 모드, `exclude_epics`/`exclude_pms` 파라미터, 미생성 백로그 PM 하위 배치, 지연 0건 PM 축하 메시지\n- **2026-03-27 미래 백로그 제외**: find_empty_backlogs에 today 파라미터 추가. 기간이 미래(>= today)인 Task 미생성 백로그는 ❔에서 제외 (end 우선, 없으면 start 기준)\n\n### 2종 알럿\n\n| 트리거 | 스크립트 | EPIC 범위 | 그룹핑 | 발송 대상 | 스케줄 |\n|--------|---------|-----------|--------|----------|--------|\n| \"마케팅 백로그 지연 체크해줘\" | `backlog_deadline_alert.py` | 유입/프로모션 | 백로그별 | 슬랙 DM | 매일 10:20 |\n| \"전사 지연 체크해줘\" | `all_deadline_alert.py` | 전체 (기타/기타-운영 제외, 산하 김 PM 제외) | PM별 | 데일리티타임 (C06U7MZCSDB) | 영업일 10:30 |\n\n### 지연 판정 기준\n- Task: 기간.start < 오늘, 상태 ≠ 완료, 상태 ≠ Won't Do\n- 백로그: 상태 ≠ 완료, 상태 ≠ 제외\n- Task 0건인 활성 백로그 경고 (❔) — **기간이 비어있거나 과거인 경우만** (end 우선, 없으면 start 기준. 미래 일정 백로그는 제외)\n\n### 모듈 구조\n- `config.py`: DB ID (BACKLOG=15361aa5, TASK=4531b9fa), TARGET_EPICS, SEVERE_DAYS=14\n- `data.py`: query_target_backlogs(epics 파라미터: None=config 기본값, []=전체), query_overdue_tasks\n- `check.py`: 순수 함수 9개 (group_by_pm, find_empty_backlogs에 pm 포함, extract_backlog_info에 PM 추출)\n- `slack_msg.py`: format_slack_message + format_slack_message_by_pm(all_pms로 0건 PM 표시, 미생성 백로그 PM별 배치)\n- `main.py`: main(target_epics, exclude_epics, exclude_pms, log_name, slack_channel, group_by)\n- **테스트**: `test_backlog_alert.py` 97개\n\n### PM별 메시지 포맷 (all_deadline_alert)\n- PM 이름 헤더 → 지연 Task (D+N 내림차순) → 미생성 백로그 (❔)\n- 지연 0건 + 미생성 0건인 PM: `🎉 모든 Task 완료!`\n- \"미지정\" PM은 맨 뒤 정렬\n- 노션 PM people 속성에서 추출 (예: \"산하 김\" = 노션 영문명 순서)\n\n### 심각도 아이콘\n- D+14 이상: 🔴 (severe)\n- D+1~13: 🟡 (warning)\n- 미생성 백로그: ❔\n- end 미설정: 🔼\n\n### launchd 이슈 (2026-03-24 해결)\n- mail-summary, backlog-deadline-alert, timeline-weekly-alert 3개 job exit 78\n- 원인: plist StandardOutPath와 Python FileHandler가 동일 파일 → fd 충돌\n- 해결: stdout/stderr를 별도 파일로 분리 (`_stdout.log`, `_stderr.log`)\n\n## Feature 2: 프로모션 Task 자동 생성 (promo_tasks/)\n\n- **2026-03-20 신규**: `promo_tasks/` 4모듈 (수동 요청 \"프로모션 Task 생성해줘\")\n- 기본 7개 Task + 옵션 5세트 (럭키드로우/바이럴/CRM/광고/특가)\n- 라이브일 기준 역산 일정 (offset: -21일 ~ 0일)\n\n### 모듈 구조\n- `config.py`: TASK_DB_ID, BASE_TASKS (7개), OPTION_SETS (5개)\n- `schedule.py`: 순수 함수 4개\n- `create.py`: create_task, create_tasks_batch\n- **테스트**: `test_promo_tasks.py` 51개\n\n**Why:** 프로모션 백로그 진행 중, Task 기한 지연 추적과 신규 세팅이 수동 상태였음\n**How to apply:** \"마케팅 백로그 지연 체크해줘\" → DM, \"전사 지연 체크해줘\" → 데일리티타임, \"프로모션 Task 생성해줘\" → 대화형 Task 생성",
+  "blog_daily_report": "## 개요\n- 매일 10:05 launchd, `blog_daily_report.py` (shim) — Claude CLI 경합 방지 위해 Briefing(10:10)보다 5분 선행\n- **2026-03-20 모듈 분리**: `blog/` 패키지 6모듈 + shim, `shared/` 재사용\n- Amplitude REST API → Claude 분석 (로컬=CLI Opus / GA=API Sonnet) → Notion 페이지 + Slack DM\n- 목표: 블로그→트립스토어 전환수 일 500건\n\n## 패키지 구조\n```\nblog/\n├── __init__.py        # from .main import main\n├── config.py          # 상수, Chart ID, 목표값, 로깅, 전환경로 라벨\n├── amplitude.py       # fetch_amplitude_chart, parse_funnel/segmentation/group_by\n├── data.py            # collect_data (Amplitude 데이터 수집·가공)\n├── notion_blocks.py   # build_notion_blocks, delta_str, delta_color (shared.notion 블록 재사용)\n├── slack_msg.py       # build_slack_message\n└── main.py            # main, call_claude_analysis, create_notion_page, check_blog_done\nblog_daily_report.py   → shim (--check-only, 공휴일 스킵)\n```\n\n## shared/ 재사용\n- `shared.config`: load_env, get_ssl_context\n- `shared.claude`: call_claude_via_cli, call_claude_via_api, extract_json_from_response\n- `shared.notion`: notion_api, rt, heading2, heading3, paragraph, divider, callout, table_block\n- `shared.slack`: send_slack_dm\n\n## Notion 구조 (2026-03-20 변경)\n- 데일리 블로그 지표: `32986ade8e7781a1bf26fc8e882752f1`\n- 2026년 3월: `32986ade8e7781c0ae31c88c148dbcbd`\n\n## 기회&액션 callout 포맷 (2026-03-24 변경)\n\n**블록 형태**: callout 유지 (paragraph/bullet 금지, 시각적 구분 우선)\n\n**3줄 압축 구조**:\n1. 볼드 제목\n2. 현상 요약 (수치 포함)\n3. **→ 액션 | 예상 효과** (볼드)\n\n기존 `문제:` / `원인:` / `→ 액션` / `예상 효과:` 4~5줄 → 3줄로 압축. 가설 설명 제거.\n\n**action 규칙**: 데이터 분석으로 알 수 있는 것(키워드 TOP 10 확인, 포스트 비교 등)은 action에 넣지 말고 problem/cause에서 직접 분석 결과를 포함. action에는 사람만 할 수 있는 실행 항목만 (CTA 교체, A/B 테스트, 상품 교체 등).\n\n**수정 파일**: `blog_analysis_prompt.txt` (프롬프트), `blog/notion_blocks.py` (블록 생성)\n\n## 테스트\n- `test_blog.py`: 36개 (config, amplitude 파싱, delta 헬퍼, notion_blocks, slack_msg)\n\n## 실행\n- 자동: 매일 10:05 launchd\n- 수동: `python3 blog_daily_report.py [YYYY-MM-DD]`\n- **주말 포함 매일 실행**, 공휴일만 스킵",
+  "briefing_redesign": "2026-03-19 새 포맷 확정 및 프로덕션 배포 완료.\n\n**Why:** 기존 포맷(체크포인트 콜아웃 + 평면적 테이블 나열)이 한눈에 핵심 파악 어려움 → 카드형 지표 + 코멘트 + 토글 구조로 개선.\n\n**How to apply:** 이제 매일 자동 실행(`daily_metrics_briefing.py`)이 새 포맷으로 배포됨. 수정 시 로컬 + GA 동시 업데이트 필수.\n\n## 최종 포맷 구조\n\n```\n📊 주요 지표 (heading2)\n  서브타이틀: \"전일(M/D, 요일) 데이터 기준 · 전주 동요일 대비\"\n  column_list Row 1: 예약 건수 / 예약액 / 유입    ← 카드형 callout\n  column_list Row 2: CAC / 전환율 / 비용           ← 카드형 callout\n\n💬 코멘트 (heading2)\n  👍 긍정 포인트 (callout, green_background) — CAC 개선은 여기\n  😟 주의 포인트 (callout, yellow_background) — 부정 지표만, CAC 개선 넣지 말 것\n  💡 개선 의견 (callout, blue_background) — 액션 아이템 1~3개 번호 리스트\n\n📋 상세 데이터 (toggle, 접힌 상태)\n  ├ 채널별 성과, 7일 추이, 월간 진척\n  ├ 퍼널 전환율, 전환율 일별 추이, DAU 채널별\n  ├ 국가별 Top 10, 여행사별 Top 10\n  └ 📊 순위 변동 분석 callout (프로모션 캘린더 기반, 여행지→여행사 순)\n```\n\n## 순위 변동 분석 기준\n\n- **포함 기준**: 순위 상승 2단계+, 하락 3단계+, NEW 진입 (analyze_ranking_changes 함수)\n- **제외**: 1단계 변동, 순위 유지 (건수 급변이더라도 제외)\n- **정렬**: 여행지(country) → 여행사(agency), 같은 그룹 내 변동 큰 순\n- **코멘트**: 프로모션 캘린더 매칭 + 트렌드 기반 자동 생성 (Python 폴백) / Claude 분석 시 Claude 코멘트 사용\n- Claude 프롬프트에 `ranking_changes` 배열 항목만 분석하도록 명시 (임의 추가 금지)\n\n## 핵심 구현 사항\n\n1. **2-phase column_list**: Phase A(placeholder 생성) → Phase B(GET children → DELETE placeholder → PATCH 카드 삽입)\n2. **metric_card()**: callout 블록으로 label/value/delta 표시\n3. **compute_delta**: 일반 지표 상승=red/하락=blue, 비용/CAC 반대, 전환율은 %p\n4. **코멘트**: Claude `comments` 필드(positive/caution/suggestion) 사용, 없으면 `build_fallback_comments()` 폴백\n5. **briefing_prompt.txt**: `comments` + `ranking_analysis`(this_week/prev_week/pct_change 포함)\n6. **build_notion_blocks_with_analysis()**: `(blocks, card_contents)` 튜플 반환\n\n## 월요일 합산 모드 주의사항 (2026-03-23 수정)\n\n1. **SUM_KEYS에서 비율 지표 제외**: `paid_cpr`, `crm_cpr`은 비용/예약 비율이므로 단순 합산하면 안 됨 → SUM 후 재계산 필요\n2. **7일 추이는 마지막 날짜(일요일) 기준**: `data[\"recent_7\"]`와 `data[\"daily_data\"]`를 `all_data[-1]`로 교체, `trend_report_date` 키 사용 → 금/토/일 각각 개별 수치 표시\n3. **테이블 헤더 \"어제\" → 날짜범위**: 합산 모드에서 `data[\"date_range_str\"]` (예: \"03-20~03-22\")이 헤더에 표시됨 (전체 성과, 채널별 테이블, 서머리 텍스트)\n4. **누적 건수 콤마 포맷**: `cum_rsv`에 `:,.0f` 적용 (서머리 + 월간 테이블)\n\n## 전환율 불일치 해소 (2026-03-24)\n\n카드 전환율과 퍼널 테이블 전환율이 다른 수치를 보이는 원인을 분석하고 Option C(현행 유지 + 맥락 명시)를 적용함.\n\n| 항목 | 카드 \"전환율(건수)\" | 퍼널 테이블 \"유입→예약\" |\n|------|-------------------|----------------------|\n| 데이터 출처 | Google Sheets (BQ→daily_sync) | Amplitude 퍼널 차트 API |\n| 분모 | visit (세션/PV 건수) | 유입 이벤트 유니크 유저 |\n| 분자 | rsv (예약 건수) | 예약완료 이벤트 유니크 유저 |\n| 코드 위치 | `page_builders.py:345` | `amplitude.py:33-83` |\n\n**결정**: 서로 다른 관점(건수 vs 유저)의 지표이므로 차이가 정상. 라벨로 구분:\n- 카드: `\"전환율\"` → `\"전환율(건수)\"`\n- 퍼널 테이블 설명: `\"Amplitude 유니크 유저 기반\"` 명시\n\n## 수정 파일\n\n- `briefing/main.py`, `briefing/notion_helpers.py`, `briefing/claude_integration.py` (로컬 + GA 동시)\n- `3_데이터/daily/daily_metrics_briefing.py` + `briefing_prompt.txt` (로컬)\n- `~/tripstore-automation/` 동일 파일들 (GA)\n- `3_데이터/daily/test_new_format.py` (테스트용, 프로덕션 미사용)",
+  "daily_briefing": "# Daily Briefing & 관련 스크립트\n\n> 이 파일은 4개 스크립트를 다룸: (1) daily_briefing.py — Webhook 브리핑, (2) daily_report.py — 데이터 추출, (3) daily_metrics_briefing.py — Notion+Slack 자동 브리핑, (4) daily_mail_summary.py — 메일 점검\n\n---\n\n## 1. Daily Briefing — Slack Webhook 간단 브리핑\n- 스크립트: `3_데이터/daily/daily_briefing.py`\n- **용도**: Slack Webhook으로 간단 브리핑 발송. Notion 미사용. `daily_metrics_briefing.py`와 별개 스크립트\n- Webhook URL: `.env`의 `SLACK_WEBHOOK_URL`\n- 로그: `3_데이터/daily/briefing_stdout.log`, `briefing_stderr.log`\n- 수동: `python3 daily_briefing.py [YYYY-MM-DD]`\n- 구성: 한줄요약 → 핵심수치(전주→어제) → 채널하이라이트(Paid/CRM/Org) → 월간진척\n- SSL: macOS python3 → `certifi` 패키지 사용\n\n---\n\n## 2. Daily Report — 마케팅 성과 데이터 추출\n- 스크립트: `3_데이터/daily/daily_report.py`\n- 수동: `python3 daily_report.py [YYYY-MM-DD]`, `--with-prompt` 옵션\n- 출력: `3_데이터/daily/YYYY-MM-DD_data.md` (마크다운 파일, 콘솔 출력 없음)\n- 월별 시트명: `YY년 M월 일별 현황`\n- 목표값: E3(총예약), F3(총유입), E4-E6(Paid/CRM/Org 예약 목표)\n- **전월 포함**: 월초(14일 이전)에는 전월 시트 데이터를 prepend → 7일 추이 전주 비교 가능\n\n---\n\n## 3. 데일리 지표 브리핑 자동화 — Notion+Slack (Claude CLI 경유)\n- 스크립트: `3_데이터/daily/daily_metrics_briefing.py`\n- 매일 10:10 launchd (`com.tripstore.daily-briefing.plist`)\n- 로그: `3_데이터/daily/daily_metrics_briefing.log`\n- 평일만 실행, 주말 자동 스킵\n- 수동: `python3 daily_metrics_briefing.py [YYYY-MM-DD]`\n- **합산 모드 판정**: `_is_holiday(report_dt)` 기준. report_dt 자체가 휴일(주말/공휴일)일 때만 역방향 누적. 평일이면 해당 날짜만 리포트\n\n### 2단계 파이프라인\n- Phase 1: Python 데이터 수집\n- Phase 2: Claude CLI(`/opt/homebrew/bin/claude -p --max-turns 1 --output-format json`)로 분석+Notion 블록 JSON 생성\n- Phase 3: Python이 Notion API + Slack 발송\n- 프롬프트: `3_데이터/daily/briefing_prompt.txt`\n- 폴백: Claude CLI 실패/타임아웃(180초) → Python 템플릿 빌더로 자동 폴백\n- 디버깅: `_claude_input.json` 자동 저장\n- Claude CLI: `env.pop(\"CLAUDECODE\")` (중첩 세션 방지), `cwd=PROJECT_DIR`\n\n### 데일리 지표 브리핑 워크플로우 (수동 \"지표 브리핑\" 트리거)\n- 설정: `3_데이터/tools/앰플리튜드/cvr_report_config.json`\n- 워크플로우:\n  1. `daily_report.py`로 데이터 수집 (BigQuery+스프레드시트)\n  2. Amplitude MCP로 6개 차트 데이터 조회 (query_chart)\n  3. `daily_briefing.py`의 `fetch_ranking_data()`로 국가별/여행사별 Amplitude 데이터\n  3-1. 순위 변동 원인 분석 — 프로모션 캘린더 기반 (report_date까지 발송된 플친/푸시만 참조)\n  3-2. 임계값: 상승 ▲2 이상, 하락 ▼3 이상, NEW → 원인 분석 대상\n  4. Notion 페이지 생성 + Slack 요약 발송\n- Slack: C06U7MZCSDB (데일리티타임)\n- Slack 폴백: 채널 → Webhook → DM(D0AKFTZ0NRJ)\n\n### 변경 이력\n\n**2026-03-12: 예상 월말 버그 수정 + 용어/컬럼 개선**\n- **버그 수정**: `days_with_data` 계산이 `daily_data` 전체(전월 포함)에서 rsv>0 카운트 → 당월 경과일(`days_passed`)로 변경. 월초에 전월 데이터가 prepend되어 ~39일로 평균이 희석되던 문제 해결. 수정 파일 3곳: `build_monthly_tables()`, `serialize_data_for_claude()`, `daily_report.py generate_report()`\n- **\"매출\" → \"예약액\"**: `build_summary_text`, `build_overall_table`, `build_7day_trend_table`, `build_slack_summary`(2곳), `briefing_prompt.txt` 예시\n- **예약액 예상 행 추가**: `build_monthly_tables()`에 예약액 행 추가 (목표 = target_rsv × 250만원 객단가)\n- **\"변화\" → \"순위변동\"**: 국가별/여행사별 Top 10 테이블 헤더 명확화\n\n**2026-03-17: 합산 날짜 로직 버그 수정 + 슬랙 요약 5불릿 포맷 고정**\n- **버그 수정**: 역방향 휴일 누적 루프가 report_dt 평일/휴일 무관하게 실행 → `_is_holiday(report_dt)` 가드 추가. 평일이면 해당 날짜만 리포트. `run()`과 `check_briefing_done()` 양쪽 적용\n...(이하 생략)",
+  "daily_sync": "# Daily Sync 자동화\n\n## 개요\n- 매일 10:05 launchd 실행 (`com.tripstore.daily-update.plist`)\n- GitHub Actions 복제: `/Users/do/tripstore-automation/daily_sync.py`\n- 스크립트: `3_데이터/daily/daily_sync.py` (plist에서 python3 직접 호출)\n- 로그: `3_데이터/daily/daily_sync.log`\n- 대상 스프레드시트: `1-577P8EceQShZcO8ONPJesGZGT7qMo3CVRk2pkyGrCM`\n\n## 7개 동기화\n| # | 소스 | 대상 시트 | 내용 |\n|---|------|-----------|------|\n| 1 | BigQuery `statistics.kpi_daily_new` | 대시보드 > 전사지표_2401 | DAU, 신규유저, 예약 등 KPI (최근 30일 증분) |\n| 2 | 쉬움컴퍼니 스프레드시트 | 대시보드 > [Con] 시트 8개 | 네이버SA/BSA, 크리테오, 타불라, ADN 등 매체 데이터 |\n| 3 | 빅인 스프레드시트 | 대시보드 > [CRM]KakaoMsg | 카카오 메시지 일자별 발송비용 |\n| 4 | Google Ads API | 대시보드 > Media_Google_RD | 캠페인별 노출, 클릭, 지출 |\n| 5 | Meta Marketing API | 대시보드 > Media_Meta_RD | 캠페인/광고세트별 노출, 링크클릭, 지출, 앱설치 |\n| 6 | BQ 채널별 | 대시보드 > OO년O월일별현황 | Paid/CRM/Org 유입·예약 데이터 |\n| 7 | BQ `dw.mkt_dashboard_reservation` | **대시보드 [Con] K열 + 쉬움 K열** | 매체별 예약 수 + CAC 수식 (양쪽 시트에 동시 쓰기) |\n\n## 주의사항\n- sh 파일에 CRLF 들어가면 한글 경로 깨짐 (LF만 사용할 것)\n- launchd: python3 직접 호출 (macOS TCC \"Operation not permitted\" 해결)\n\n## 시트 컬럼 구조\n- 전사지표_2401: 날짜 미리 채워져 있으므로 C열(DAU) 비어있으면 업데이트\n- 전사지표_2401 M열(회원가입자수): `=join_cnt-BE행` 수식, BE열에 kakaobank_join_cnt 별도 기록\n- 쉬움/대시보드 [Con] 시트: A,B=월/주차, C=Date, D=요일, E=Impression, F=Click, G=CTR, H=CPC, I=Spending\n  - 소스 읽기 범위 `A1:I2000`, 날짜=row[2](C열), Impression체크=row[4](E열), 데이터추출=row[4:9](E~I)\n- 빅인→[CRM]KakaoMsg: C열(row[2])이 날짜 (B열=주차번호)\n\n## BQ 예약 수 → 대시보드 + 쉬움 동시 쓰기\n- BQ 테이블: `dw.mkt_dashboard_reservation` (utm_source, campaign_group별 분류)\n- **대시보드 [Con] 시트**: C열=Date, K열(예약 수) + L열(CAC 수식 `=IFERROR(J/K,\"\")`)\n- **쉬움 시트**: C열=Date(A,B=월/주차로 비어있음), J=Real Spending, K열(D-Day 예약) + L열(D-Day CAC 수식 `=IFERROR(J/K,\"\")`)\n- 대시보드/쉬움 모두 C열=Date, K=예약, L=CAC (컬럼 구조 동일)\n- 빈 셀에만 쓰기 (기존 데이터 보호)\n- 매핑 (BQ 예약 데이터가 있는 5개 시트만):\n  - [Con]NaverSA_MO ↔ [네이버]SA_MO\n  - [Con]NaverSA_PC ↔ [네이버]SA_PC\n  - [Con]NaverBSA_MO ↔ [네이버]BSA_MO\n  - [Con]NaverBSA_PC ↔ [네이버]BSA_PC\n  - [Con]크리테오 ↔ 크리테오\n\n## 채널별 지표 (BQ→일별현황 시트)\n- BQ 테이블: `dw.mkt_dashbboard_visit`(유입), `dw.mkt_dashboard_reservation`(예약)\n- 시트 열: W(Paid예약), AC(Paid유입), AF(CRM예약), AL(CRM유입), AO(Org예약), AS(Org유입)\n- **7일 리프레시** (2026-03-24): BQ 귀속 모델(INTERVAL 6 DAY)로 최근 7일 데이터 변동 가능 → D-1~D-7은 빈 셀 여부와 무관하게 매일 BQ 최신값으로 덮어씀. 빈 날짜 + 리프레시 합집합으로 업데이트\n- **중요**: 6개 데이터 열만 개별 셀 단위로 쓸 것. W:AS 범위 일괄 쓰기 금지 (수식 열 덮어쓰기 방지)\n- 수식 열 구조 (행=N, 비용시트 참조=N-1):\n  - X: =iferror(WN/ACN,\"\"), Y: ='26년 M월 비용'!E(N-1), Z: =iferror(YN/WN,\"\"), AA: =$F$4/28, AB: =ACN/AAN\n  - AD: =$E$5/28, AE: =iferror(AFN/ADN,\"\")\n  - AG: =iferror(AFN/ALN,\"\"), AH: ='26년 M월 비용'!P(N-1), AI: =iferror(AHN/AFN,\"\"), AJ: =$F$5/28, AK: =ALN/AJN\n  - AM: =$E$6/28, AN: =AON/AMN\n  - AP: =iferror(AON/ASN,\"\"), AQ: =$F$6/28, AR: =ASN/AQN\n\n## 테스트\n- 파일: `tests/test_daily_sync.py` (39개 테스트, 2026-03-19)\n- GA 동기화: `/Users/do/tripstore-automation/tests/test_daily_sync.py`\n- 대상: 유틸리티 함수 5개 (`_normalize_date`, `_format_date_for_sheet`, `_to_number`, `_is_date_like`, `_bq_cmd`)\n- **모듈 분리하지 않음** — 7개 sync 함수가 전부 동일 패턴(BQ/API→시트)이라 파일 분리 이점 없음. 유틸 함수 테스트로 안전성 확보\n...(이하 생략)",
+  "feedback_rules": "## SRP + TDD 원칙 (자동화 스크립트 작업 시)\n\n자동화 스크립트를 신규 작성하거나 수정할 때 SRP(단일 책임 원칙)와 TDD(테스트 주도 개발)를 적용한다.\n\n**적용 대상:**\n- 반복 실행되는 자동화 스크립트 (daily_sync, bid_optimizer 등)\n- shared/ 공용 모듈\n- 금액·입찰 관련 로직 (미디어믹스 비율, CPC 조정 등)\n- 기존 코드에 기능 추가/변경\n\n**적용 안 하는 경우:**\n- 일회성 분석/조회\n- 문구·설정값 단순 수정\n\n**SRP:** 함수/모듈마다 하나의 책임만 갖도록 분리 (조회, 가공, 저장, 발송 등)\n**TDD:** 테스트 먼저 작성 → 코드 작성 → 리팩터 순서로 진행\n\n**Why:** 사용자가 매번 같은 지시를 반복해야 했음. 원칙 없이 작업하면 모듈 간 결합도가 높아지고, 테스트 없이 커밋되어 유령 코드/에러 발생.\n**How to apply:** 자동화 스크립트 작업 시작 시 자동 적용. 일회성 작업에는 적용하지 않아 오버엔지니어링 방지.\n\n## 제안 전 검증\n\n제안이나 후속 질문을 던지기 전에 반드시 한번 더 검증하기.\n예: \"GitHub Actions에 동기화할까요?\" → 해당 스크립트가 GA 대상인지 먼저 확인 후, 대상이 아니면 물어보지 않기.\n불필요한 질문으로 사용자 시간을 낭비하지 않을 것.\n\n## 노션 인사이트 저장\n\n- \"분석건 노션에 정리해줘\"라고 하면 **인사이트 모음집** (ID: `10c86ade-8e77-8045-b08a-f87e42f3b2ab`) 하위 페이지로 생성\n- 저장 완료 후 노션 경로를 명시적으로 알려줄 것\n\n## 임의 수치 금지\n\n- 목표 수치를 설정할 때 근거 데이터가 없으면 임의로 숫자를 만들지 말 것\n- 수치 설정이 어려우면 솔직하게 어렵다고 말할 것\n- 출처(출처:)를 적을 때 실제로 참조한 데이터만 적고, 참조하지 않은 데이터를 출처로 적지 말 것\n- \"데이터 확인 후 설정 필요\"로 명시하는 게 잘못된 숫자보다 낫다\n\n## BQ CAC 기준\n\n- 매체 자체 전환 수치(Meta purchase, Google conversions 등)는 뷰스루/어시스트 포함으로 부풀려져 있음\n- 예: Meta 241029 → Meta 자체 1,033건 vs BQ 52건 (20배 차이)\n- **BQ 기여모델**: First-touch 50% + Last-touch 50%, 7일 룩백 윈도우 (`marketing_attribution.sql`)\n- **항상 BQ `dw.mkt_dashboard_reservation` 기준 `SUM(value)`로 예약건수 집계** (value는 0.5 단위)\n- CAC = 대시보드 비용 시트 실집행 / BQ 예약건수\n- 매체 성과 비교, 예산 재배분 제안 시 반드시 BQ 기준 적용\n- **미디어믹스 진행 비중 정리에서도 유입/가입/예약은 반드시 BQ dw 테이블 사용** — 추정값 사용 금지 (AAA 추정 14건 vs BQ 실제 5.5건 사례)\n\n## 전환율 비교 기준\n\n- **25년 6월 이후 데이터만 유효**: 결제정산 반영(나중에결제 폐지)으로 6월부터 전환율 구조 변화\n- 25년 3~5월 CVR은 구정산 기준이라 현재와 비교 불가\n- **Why:** 나중에결제를 없애는 대신 출발률을 높이기 위한 전략적 전환. 이전 데이터는 전환율이 높게 나오지만 출발률이 낮았음\n- **How to apply:** 월별 CVR 추이 분석, 미디어믹스 전환율 배수 설정 시 반드시 6월 이후 기준\n\n## 미완성 코드 금지\n\n자동화 스크립트에 시트 미생성/API 미설정 상태의 함수를 추가하지 말 것.\n\n1. **새 sync 함수 추가 시 반드시 확인**: 대상 시트 존재? API 인증 완비? 기존 경로와 중복 없음?\n2. **미완성 코드는 커밋하지 말 것** — TODO 주석이나 별도 브랜치로 관리\n3. **docstring/CLAUDE.md에 기재되지 않은 sync는 의심** — 공식 파이프라인이면 문서에 반영되어야 함\n\n**Why:** 2026-03-17 NaverSA_RD 유령 코드 약 200줄이 매일 에러 로그 발생시킴 (시트 미생성, API 미설정)\n\n## 업무정리 워크플로우\n\n\"오늘 업무 정리\" 요청 시:\n1. 오늘 날짜가 포함된 주간 일정관리 노션 페이지를 찾는다\n2. 김현우 섹션 아래 해당 요일(MONDAY~FRIDAY) callout 블록을 찾는다\n3. 해당 칸에 오늘 진행한 업무를 to-do 또는 bullet 형태로 정리한다\n\n위클리 페이지 구조: 페이지 제목 \"3월 N주\" 형식, 각 이름 아래 column_list → 요일별 callout 블록 → children으로 to-do 항목\n\n## 데일리 브리핑 기회&액션 포맷\n\n기회&액션 섹션은 callout 블록 형태를 유지한다 (paragraph/bullet로 변경 금지).\n각 callout은 3줄로 압축: 볼드 제목 → 현상 요약(수치) → 볼드 액션+효과.\n기존처럼 가설 설명(문제/원인 각 4줄)은 제거하되, callout 블록의 시각적 구분은 유지.\n\n**Why:** 사용자가 callout이 구분되어 보기 좋다고 확인. paragraph+bullet로 바꿨다가 다시 callout으로 되돌림.\n**How to apply:** daily_metrics_briefing.py의 기회&액션 생성 시 callout 블록 사용, 내용은 간결하게.\n\n## 브리핑 액션: Claude가 할 수 있는 건 직접 수행\n\n기회&액션에 \"서치어드바이저 확인\", \"상위 포스트 비교\", \"CVR 차이 원인 분석\" 등 Claude가 데이터로 할 수 있는 분석을 \"내일 해라\"고 적지 말 것. 브리핑 생성 시점에 직접 분석을 수행하고 결과를 넣어야 한다. 액션 아이템은 사람만 할 수 있는 것(CTA 문구 교체, A/B 테스트 설정, 상품 교체 등)만 남긴다.\n\n**Why:** Claude가 할 수 있는 걸 사용자에게 숙제로 넘기면 브리핑의 가치가 떨어짐.\n**How to apply:** 브리핑 프롬프트에서 \"Claude가 조회 가능한 분석은 직접 수행 후 결과 포함, 사람 액션만 제안\"으로 지시.\n\n...(이하 생략)",
+  "feedback_weekday": "날짜의 요일을 말할 때 절대 추측하지 말 것. 반드시 `date` 명령으로 확인 후 답변.\n\n**Why:** 2026-03-24 대화에서 3/23을 일요일로, 3/16을 일요일로, 3/25를 목요일로 반복 오답. 모델에 내장 달력이 없어서 요일 계산이 부정확함.\n\n**How to apply:** 요일이 포함된 답변을 할 때는 항상 `date` 또는 `date -v+1d` 등으로 검증한 뒤 말하기.",
+  "gads_perf": "## 개요\n\nGoogle Ads 소재(Asset) 단위 성과 평가 + PMax 에셋 교체 시스템.\n패키지: `3_데이터/daily/gads_perf/`\n진입점: `3_데이터/daily/gads_performance_check.py`\n\n## 실행 방법\n\n```bash\n# 성과 평가 (dry-run)\npython3 gads_performance_check.py --skip-sync-gate\n\n# PMax 에셋 교체 (dry-run)\npython3 gads_performance_check.py --rotate --skip-sync-gate\n\n# PMax 에셋 교체 (실제 적용)\npython3 gads_performance_check.py --rotate --skip-sync-gate --apply\n```\n\n## 파일 구조\n\n| 파일 | 역할 |\n|------|------|\n| `config.py` | 상수, 경로, 임계값 |\n| `data.py` | Google Ads API + BQ 데이터 수집 |\n| `rules.py` | PMax 에셋그룹 메트릭 + 비PMax CTR 평가 |\n| `asset_manager.py` | PMax 에셋 제거/추가, 라이브러리 조회, 교체 계획 |\n| `slack_msg.py` | Slack 알림 포맷 |\n| `log_io.py` | JSON 로그 저장 (`gads_perf_logs/`) |\n| `main.py` | 오케스트레이션 (평가 모드 + 교체 모드) |\n\n## 데이터 소스\n\n### Google Ads API (google-ads 29.2.0, API v23)\n- 인증: `3_데이터/tools/google-ads.yaml`\n- Customer ID: `9152282635`\n- 활성 PMax 캠페인: `ts_purchase_pmax_webapp_250109`\n\n### BQ utm_source 매핑 (실제 값)\n- `PMax` → PMax 캠페인\n- `Google_ACe` → App Campaign for Engagement\n- `Google_ACI` → App Campaign for Installs\n\n## 성과 평가 로직\n\n### PMax (에셋그룹 레벨)\n- Google Ads API는 PMax 개별 에셋 성과(BEST/LOW 라벨)를 제공하지 않음\n- 에셋그룹별 메트릭(CTR, 비용, 전환)으로 평가\n- 캠페인 BQ CAC × 1.5 초과 시 주의\n\n### 비PMax (에셋 레벨 CTR)\n- `ad_group_ad_asset_view` 리소스로 에셋별 노출/클릭 조회\n- 에셋 CTR < 캠페인 평균 CTR × 0.5 → 교체 추천\n- 에셋 CTR > 캠페인 평균 CTR × 1.5 → 우수\n- 노출 < 1,000 → 데이터 부족 (판단 보류)\n\n## 에셋 교체 로직\n\n### PMax 에셋 유형별 제한\n| 유형 | 최소 | 최대 |\n|------|------|------|\n| HEADLINE | 3 | 15 |\n| LONG_HEADLINE | 1 | 5 |\n| DESCRIPTION | 2 | 5 |\n| MARKETING_IMAGE | 1 | 20 |\n| SQUARE_MARKETING_IMAGE | 1 | 20 |\n| PORTRAIT_MARKETING_IMAGE | 0 | 20 |\n| YOUTUBE_VIDEO | 0 | 5 |\n\n### safeguard\n- 유형당 최대 2개씩만 제거 (최소 수량 이하로 안 떨어짐)\n- 라이브러리 텍스트 중 쓰레기(ㅁㄴㅇ, test 등) 자동 필터링\n- 이미지 비율 자동 분류 (1:1=정사각, 1.91:1=가로, 4:5=세로)\n\n### 현재 제한사항\n- 제거 순서: 알파벳순 (성과 기반 아님 — API 미지원)\n- 추가 후보: 라이브러리 미사용 이미지 중 비율 매칭 (순서 무작위)\n- 텍스트 추가: 기존 헤드라인/설명이 최대치에 가까워 대부분 스킵\n\n## 2026-03-27 첫 dry-run 결과\n\n### 캠페인 성과 (14일, BQ CAC 기준)\n| 캠페인 | 비용 | 예약 | CAC |\n|--------|------|------|-----|\n| PMax | 920만원 | 65.5건 | 140,539원 |\n| ACe | 855만원 | 72건 | 118,712원 |\n| ACI | 694만원 | 74.5건 | 93,172원 |\n| **Google 평균** | | | **115,934원** |\n\n### 에셋 현황\n- PMax 에셋: 251건 (2개 에셋그룹: \"1번째 애셋 그룹\" 50개, \"다낭/나트랑/푸꾸옥\" 51개)\n- 비PMax 에셋: 150건 → 교체추천 12, 우수 22, 정상 93, 데이터부족 23\n- 라이브러리: 이미지 454개 미사용, 텍스트 466개 미사용\n\n### 교체 계획 (에셋그룹별 제거 14건 + 추가 9건 × 2그룹)\n\n**1번째 애셋 그룹** (비용 764만원 | CTR 1.26% | 전환 194.9건)\n\n제거 후보:\n- SQUARE_IMAGE: `01-보홀-1_2023-06-20_15-47-10.jpg`, `04-1.jpg` (12→10)\n- HEADLINE: `20만원으로 떠나는 해외여행`, `30만원으로 동남아 정복하자` (15→13)\n- LONG_HEADLINE: `5성급? 노쇼핑? 나에게 딱 맞는 조건만 클릭...`, `여기저기 찾지 말고...` (5→3)\n- DESCRIPTION: `400만 다운로드 앱...`, `국내 대표 여행사...` (5→3)\n- MARKETING_IMAGE: `1200x628.jpg`, `나트랑-1200X628.png` (6→4)\n- PORTRAIT_IMAGE: `나트랑-1200X1500.png`, `다낭-1200X1500.png` (2→0)\n- YOUTUBE_VIDEO: 2건 (5→3)\n\n추가 후보:\n- SQUARE_IMAGE: `KakaoTalk_20230612_111654179_01_1.jpg`, `01-서유럽-1.jpg`, `01-보라카이-1.jpg`\n- MARKETING_IMAGE: `04-3.jpg`, `01-대만-2.jpg`, `01-삿포로-2.jpg`\n...(이하 생략)",
+  "github_actions": "# GitHub Actions 자동화\n\n## 개요\n- **2026-03-19 전환**: GA 백업 실행 → 모니터링 전용\n- 로컬 자동 Wake(`pmset repeat 09:55` + `caffeinate 80분`)로 launchd 실행 보장\n- GA는 11:15에 `--check-only`만 수행, 미완료 시 Slack 알림 발송 (직접 실행 안 함)\n- 비상 시 `force=true`로 GA 직접 실행 가능\n- 레포: `sohajunikim-prog/tripstore-automation-` (private)\n- 워크플로우: `.github/workflows/daily.yml`\n- 로컬 클론: `/Users/do/tripstore-automation/`\n\n## 아키텍처: 로컬 Wake + GA 모니터링\n\n### 자동 Wake 구성\n| 구성요소 | 설정 | 역할 |\n|----------|------|------|\n| `pmset repeat` | `wakeorpoweron MTWRFSU 09:55:00` | NVRAM 기반, 잠자기/전원꺼짐 모두 wake |\n| `com.tripstore.wake-keeper` | `caffeinate -s -t 4800` (09:55) | 80분간 sleep 방지 (9:55~11:15) |\n\n### GA 모니터링 Job (1개, 11:15 KST)\n- cron: `15 2 * * *` (UTC) = KST 11:15\n- sync, briefing, cac 순서대로 `--check-only` 실행\n- CAC는 평일만 체크 (주말+공휴일 스킵)\n- 하나라도 미완료 → Slack 알림 + exit 1\n- 모두 완료 → \"모든 작업 완료 확인\" notice\n\n### 비상 강제 실행 (force-execute Job)\n- `workflow_dispatch` + `force=true` 시에만 실행\n- `job` input: `all` / `sync` / `briefing` / `cac`\n- 각 스크립트 직접 실행 (기존 GA 백업과 동일한 환경/secrets)\n\n## 이전 구조 (2026-03-19 이전)\n- 3개 Job (sync 10:20, briefing 10:30, CAC 10:40), 각각 check → 실행\n- 문제: GA 실행 시 Sonnet 사용, 환경 차이, 시크릿 이중관리\n\n## 중복 발행 방지 (2026-03-13 추가)\n- **사고**: GA 스케줄러 4시간 지연 → `--check-only`가 루트 페이지만 검색 → 항상 미완료 판정 → 중복 발행\n- **수정**: `check_briefing_done()`이 월별 하위 페이지를 검색하도록 변경\n- **추가 가드**: `run()` 진입 시 Notion 중복 체크 + Slack 발송 전 채널 히스토리 체크\n- `--force` 또는 수동 날짜 지정 시에만 가드 우회\n\n## GitHub Secrets\n| Secret | 용도 |\n|--------|------|\n| `GOOGLE_CREDENTIALS_JSON` | GCP 서비스계정 키 JSON |\n| `GOOGLE_ADS_YAML` | Google Ads API 설정 |\n| `META_ACCESS_TOKEN` | Meta Marketing API 토큰 |\n| `AMPLITUDE_API_KEY` | Amplitude API 키 |\n| `AMPLITUDE_SECRET_KEY` | Amplitude Secret |\n| `NOTION_API_TOKEN` | Notion 내부 통합 토큰 |\n| `SLACK_BOT_TOKEN` | Slack Bot 토큰 |\n| `SLACK_WEBHOOK_URL` | Slack Webhook URL |\n| `ANTHROPIC_API_KEY` | Claude API 키 |\n\n## 수동 실행\n```bash\n# 모니터링만 수동 트리거\ngh workflow run daily.yml --repo sohajunikim-prog/tripstore-automation-\n\n# 강제 실행 (비상용)\ngh workflow run daily.yml -f job=cac -f force=true --repo sohajunikim-prog/tripstore-automation-\n\n# 실행 상태 확인\ngh run list --repo sohajunikim-prog/tripstore-automation- --limit 5\n```\n\n## 실패 시나리오 & 대응\n| 상황 | 대응 |\n|------|------|\n| DarkWake에서 Wi-Fi 안 붙음 | caffeinate `-su`로 변경 (FullWake 강제) |\n| 전원 꺼진 → 부팅 후 로그인 필요 | 자동 로그인 설정 |\n| Mac 부재 (출장 등) | `gh workflow run daily.yml -f force=true` |\n| caffeinate 프로세스 죽음 | 실행 중 스크립트에 영향 없음, 다음 날 재시작 |",
+  "influencer_scout": "## 개요\n- 수동 트리거: \"유튜버 찾아줘\" → `influencer_scout.py` 실행\n- YouTube Data API v3로 여행 유튜버 검색(10쿼리) → 하드 필터 4종 → 8팩터 스코어링 → Claude 시청자 분석(TOP 15, 연령대별 분포 포함) → Gmail 컨택 이력 Claude 요약 → 노션+슬랙\n\n**Why:** 3/23 스카우트 결과 리뷰에서 4050 여성 타겟 적합성 미반영 문제 발견. 돌키여행(구독자25), 여행대장tv(여행사), 센님/규진(2030대 시청자) 등이 TOP 10에 포함됨. 3/24 고도화로 하드 필터+4050 스코어링+Claude 정밀 분석 추가\n**How to apply:** `--dry-run`으로 API만 테스트 가능, `--contact-only`로 Gmail 이력만 정리\n\n## 패키지 구조\n```\n3_데이터/daily/\n  influencer_scout.py              # shim\n  influencer_scout/\n    __init__.py\n    config.py                      # 상수, 가중치, 하드필터, 4050/댓글 분석 키워드\n    youtube.py                     # YouTube Data API v3 + commentThreads 댓글 수집\n    gmail.py                       # Gmail API (ADC) + Claude 요약\n    scoring.py                     # 하드 필터 4종 + 8팩터 스코어링 + Claude 시청자 분석(연령분포)\n    notion_blocks.py               # 노션 블록 빌더 (9컬럼 테이블 + 시청자 분석 + 연령 분포 바 + 스코어링 기준)\n    slack_msg.py                   # 슬랙 DM 포맷 (예상조회수 + 타겟핏 신호등)\n    main.py                        # 오케스트레이션 + Claude enrichment\n```\n\n## 검색 쿼리 (10개)\n기존 6개 + 4050 맞춤 4개: \"40대 여행 브이로그\", \"엄마와 여행\", \"부부여행 브이로그\", \"가족 해외여행 추천\"\n\n## 하드 필터 6종\n| 필터 | 임계값 | 해결 문제 |\n|------|--------|-----------|\n| 최소 구독자 | MIN_SUBSCRIBERS = 5,000 | 돌키여행(25명) 차단 |\n| 정보 부재 | hidden_subscribers=True | 정보 비공개 채널 차단 |\n| 활동성 | MAX_INACTIVITY_DAYS = 180 | 4년 중단 채널 차단 |\n| 기업 채널 | CORPORATE_KEYWORDS 매칭 | 만나투어, 푸른투어 등 차단 |\n| 수동 블록리스트 | MANUAL_BLOCKLIST | 여행대장tv (2026-03-25) |\n| 예상조회수 | MIN_ESTIMATED_VIEWS = 10,000 | 최근 10개 영상 조회수 중앙값 기준 (2026-03-25) |\n\n## 기존 협업 크리에이터 제외\n- 브랜디드콘텐츠 폴더명(`YYMMDD_이름`)에서 자동 추출 (현재 71명)\n- 공백 무시 비교 (2026-03-25 수정): `여행하는김씨` ↔ `여행하는 김씨` 매칭 가능\n\n## 스코어링 가중치 (총 100, 8팩터)\n| 항목 | 가중치 | 만점 기준 |\n|------|--------|-----------|\n| content_fit | 20 | 여행 키워드 비율 100% |\n| content_theme_4050 | 10 | 4050 긍정 키워드 비율 (API 비용 0) |\n| audience_fit | 20 | 댓글 기반 한국어(40%)+연령신호(40%)+문체(20%) |\n| engagement_rate | 20 | (좋아요+댓글)/조회수 ≥ 10% |\n| subscriber_range | 10 | 5만~50만 |\n| video_format | 10 | 롱폼(8분+) 비율 100% |\n| recency | 5 | 최근 30일 4개+ 업로드 |\n| comment_ratio | 5 | 댓글/조회수 ≥ 0.5% |\n\n## Claude 시청자 분석 (TOP 15)\n- 1차 스코어링 후 상위 15개 채널에 Claude CLI(Opus) 호출\n- 댓글 50개 샘플 → JSON 출력:\n  - `estimated_age_range`, `age_distribution` (20대이하/30대/40대/50대이상 비율)\n  - `female_ratio_estimate`, `korean_audience_ratio`, `fit_score_4050_female`\n  - `confidence` (높음/중간/낮음)\n- confidence별 블렌딩: 높음=Claude 80%, 중간=50/50, 낮음=Claude 20%\n- 실패 시 graceful fallback (휴리스틱만 사용)\n\n## 출력\n- **노션**: 9컬럼 요약 테이블(예상조회수+타겟핏), 토글 상세(시청자 분석+연령 분포 바), 하단에 스코어링 기준 테이블\n- **슬랙**: 예상조회수 + 타겟핏 신호등(🟢≥70% / 🟡≥40% / ⚠️<40%)\n- **예상 조회수**: 최근 영상 조회수 중앙값 (바이럴 왜곡 방지)\n\n## API 설정\n- GCP 프로젝트: `tripstor-mkt` (754054977082) YouTube Data API v3\n- API Key: `.env`의 `YOUTUBE_API_KEY`\n- 쿼터: 일 10,000 units, 1회 실행 약 1,123 units (11%)\n\n## 수동 필터링 규칙 (2026-03-25 추가)\n스코어링 이후 사람이 판단하는 추가 기준:\n1. **해외 거주자 배제** — 브랜디드 콘텐츠(우리걸로 예약→해외여행 경험) 진행 어려움. 기획PPL로만 가능하므로 우선순위 낮춤.\n2. **비한국인 댓글 필터링** — 댓글 내 한국인이 아닌 댓글 걸러서 한국 시청자 기반으로 타겟핏 재분석 (센님 사례: 일본 현지 시청자 비중 높음)\n...(이하 생략)",
+  "manual_triggers": "## 수동 실행 (Claude에게 말하기)\n\n| 트리거(말) | 이름 | 방식 | 설명 |\n|-----------|------|------|------|\n| \"daily sync 실행해줘\" | Daily Sync | `daily_sync.py` 실행 | 데이터 안 들어갔을 때 수동 동기화 |\n| \"daily sync 로그 확인해줘\" | 로그 확인 | 로그 파일 읽기 | 동기화 오류 확인 |\n| \"보고서 만들어줘\" | Daily Report | `daily_report.py` 실행 | BQ+스프레드시트 → `YYYY-MM-DD_data.md` 파일 출력. 날짜 지정: `python3 daily_report.py 2026-03-10` |\n| \"브리핑 발송해줘\" | Daily Briefing (Webhook) | `daily_briefing.py` 실행 | Slack Webhook으로 간단 브리핑 발송 (Notion 미사용). `daily_metrics_briefing.py`와 별개 |\n| \"데일리 지표 브리핑 발행해줘\" | 데일리 지표 브리핑 | Claude가 Amplitude+노션+슬랙 | 마케팅 성과+전환율 분석 → 노션 페이지+슬랙 발송. **월요일에는 금/토/일 3일치를 한 페이지로 합산 정리**. `--no-slack`: 노션만 업데이트 |\n| \"다음 주 위클리 만들어줘\" | Weekly 생성 | Claude가 노션 MCP로 생성 | 위클리 페이지 수동 생성 |\n| \"슬랙 태그 정리해줘\" | 슬랙 태그 정리 | Claude가 슬랙+노션 MCP | 슬랙 멘션 → 위클리 페이지에 to-do 반영 |\n| \"CAC 리포트 실행해줘\" | Media CAC Report | `media_cac_report.py` 실행 | 매체별 CAC 분석 → 노션 업데이트+슬랙 DM |\n| \"블로그 리포트 실행해줘\" | Blog Daily Report | `blog_daily_report.py` 실행 | 블로그 성과 분석 → 노션+슬랙 DM. 날짜 지정: `python3 blog_daily_report.py 2026-03-12` |\n| \"소재 기획안 만들어줘\" | 기획안 JSON 생성 | `brief_json_generator.py` 실행 | 메타 소재 기획안 JSON 생성 → Figma 플러그인 연동. 옵션: `--dest 오사카,다낭 --templates G,K --direction A` |\n| \"메타 소재 만들어줘\" | 광고소재 생성 | `ad_pipeline.py --batch` 실행 | Figma 사진 + Claude 카피 + Playwright 렌더링 → 4사이즈 PNG |\n| \"키워드 분석해줘\" | 네이버 SA 키워드 분석 | `naver_sa_keyword_report.py` 실행 | 네이버 SA 주간 키워드 성과 분석 |\n| \"입찰가 롤백해줘\" | 입찰가 롤백 | `rollback_bids.py` 실행 | 네이버 SA 입찰가 변경 롤백. `rollback_bids.py bid_logs/YYYY-MM-DD_bid_changes.json [--keyword-ids nkw-xxx] [--dry-run]` |\n| \"네이버SA 조정안 보여줘\" | SA 사전 조정안 | `naver_sa_bid_optimizer.py --prerun` 실행 | 현재 데이터 기준 CPC 조정안 → 노션 페이지 생성 (적용 안 함) |\n| \"SA 조정 영향 분석해줘\" | SA 조정 영향 분석 | `sa_impact_report.py` 실행 | CPC 조정 키워드 before/after 성과 영향 분석 → 노션+슬랙. 중간 점검: `--days-after 3` |\n| \"주간 회고 정리해줘\" | 주간 회고 | `weekly_retrospective.py` 실행 | 업무 완료+성과 데이터 → Claude 분석 → 노션 주간 회고 작성. 날짜 지정: `python3 weekly_retrospective.py 2026-03-19` |\n| \"마케팅 백로그 지연 체크해줘\" | Backlog Deadline Alert | `backlog_deadline_alert.py` 실행 | EPIC 유입/프로모션 백로그 기한 지연 Task → 슬랙 DM. 날짜 지정: `python3 backlog_deadline_alert.py 2026-03-20` |\n| \"전사 지연 체크해줘\" | All Deadline Alert | `all_deadline_alert.py` 실행 | 전사 기한 지연 Task PM별 → 데일리티타임 (기타/기타-운영 EPIC 제외, 산하 김 PM 제외). 날짜 지정: `python3 all_deadline_alert.py 2026-03-24` |\n| \"프로모션 Task 생성해줘\" | 프로모션 Task 생성 | Claude가 promo_tasks/ 모듈 사용 | 백로그 확인 → 기본+옵션 Task 조합 → 역산 일정 → Notion API 생성 |\n| \"유튜버 찾아줘\" | 인플루언서 스카우트 | `influencer_scout.py` 실행 | YouTube 채널 발굴(10쿼리) + 하드필터 6종 + 8팩터 스코어링(4050 타겟핏) + Claude 시청자 분석(TOP 15, 연령대별 분포) + 예상 조회수 + Gmail 컨택 이력 → 노션+슬랙. 옵션: `--dry-run` (API만 테스트), `--contact-only` (Gmail 이력만) |\n| \"SA 강제 적용해줘\" | Naver SA 실적용 | `naver_sa_bid_optimizer.py --apply --verify-after` 실행 | CPC 실적용 + API 검증 → 노션 적용결과 페이지+슬랙 DM. Sanity 차단 시 `--force-apply` |\n| \"ASA 조정안 보여줘\" | ASA 사전 조정안 | `apple_sa_bid_optimizer.py --prerun` 실행 | Apple SA CPT 조정안 → 노션 페이지 (운영 전, API 인증서 필요) |\n...(이하 생략)",
+  "marketing_cost_analysis": "# 마케팅 비용 정리 분석 (2024-2025)\n\n## 대시보드 3종\n\n| 이름 | 스프레드시트 ID | 용도 |\n|---|---|---|\n| `[MKT]Marketing Dashboard_Final_23.04~` | `1_j-izeTREyBdDRekcqotQrlI7roV84ekYsSyBULcupU` | 구버전 (23.04~) |\n| `[MKT]Marketing Dashboard_Final_24-25년도` | `1lkLbISc4OeHcH4TlzzZufZGDs656DtWxzIGTtYygL1A` | 24-25년도 기준 |\n| `[MKT]Marketing Dashboard_Final_26년도` | `1-577P8EceQShZcO8ONPJesGZGT7qMo3CVRk2pkyGrCM` | 26년도 기준 (최신) |\n\n- 정리용 시트: `1GTG034RRAXz-tcsiUt5K8xCnoLM0ckVGGOYAYS2CaNE` (시트1)\n- **24-25년도 이상 시트를 기준으로 정리** (구버전은 일부 Paid 수치 다름)\n\n## 구버전 vs 24-25년도 Paid 차이 (2024년)\n\n2, 7, 8, 10월에 차이 발생. CRM은 동일.\n\n| 월 | 구(23.04~) | 신(24-25년도) | 차이 |\n|---|---|---|---|\n| 2 | 52,718,694 | 54,705,540 | +1,986,846 |\n| 7 | 101,712,815 | 103,517,097 | +1,804,282 |\n| 8 | 72,871,842 | 74,676,124 | +1,804,282 |\n| 10 | 97,701,013 | 100,559,751 | +2,858,738 |\n\n**Why:** 24-25년도 시트에 추가 매체 데이터가 반영됨\n**How to apply:** 비용 분석 시 항상 24-25년도 이상 대시보드 사용\n\n## 비용 시트 카테고리 구조\n\n각 월별 비용 시트의 실 집행금액 행 구조:\n\n```\nTotal | Paid(전환) subtotal | [개별 채널들] | CRM | Viral | 짤컷유튜브/브랜드영상 | 메타천만원 | 브랜디드(VAT포함) | Paid(가입) | 예비비\n```\n\n- **Paid(전환)**: Meta AAA, A+SC, Google ACe, Naver SA/BSA, 모비온, 크리테오, ADN, 타불라, GFA 등\n- **CRM**: KakaoMsg\n- **Viral(침투)**: 바이럴 마케팅\n- **짤컷유튜브 / 브랜드영상광고**: 월에 따라 이름 다름 — **Paid에 속함**\n- **메타천만원광고**: 1-2월에만 존재 — **Paid에 속함**\n- **Paid(가입)**: Meta signup 등 — **Paid에 속함**\n- **브랜디드 콘텐츠**: 비용시트는 VAT 포함, 정리시트는 VAT 제외 (÷1.1)\n- **예비비**: 경품, 이벤트 등\n\n## 일별 현황 SUM행 데이터 추출 방법\n\n- T열 부근 = Paid(전환목적) subtotal만 포함 (인지/가입 Paid 미포함)\n- CRM = T열에서 오른쪽으로 ~13칸 (월마다 채널 수에 따라 다름)\n- SUM행 위치: header rows + 해당 월 일수 (예: 31일 월 → row 41, 30일 → row 40, 28일 → row 38)\n\n## 발견된 이슈 (2026-03-23 분석)\n\n### 1. 25년 11월 수식 오류\n- 정리시트의 25년 11월 Paid=213,657,021, CRM=33,423,341 → **24년 11월 값과 동일** (복붙/수식 참조 오류)\n- **수정값**: Paid=145,522,212, CRM=25,953,220 (26년도/24-25년도 대시보드 양쪽 일치 확인)\n\n### 2. Paid(가입) 고정값 복붙 (25년)\n- 비용시트에 Paid(가입) = 8,334,475가 거의 매월 동일하게 입력 → 실제 집행액 아님\n- Meta API 확인: [Signup]Meta 실제 지출은 월 0~17M으로 편차 큼\n- 2-3월은 집행 없었는데 8.3M 잡혀있었고, 7-8월은 15-17M 썼는데 8.3M만 잡혀있었음\n- **수정 완료**: 고정값 제거 후 실제 Meta API 집행액으로 교체\n\n### 3. 5-6월 예비비 이상치\n- 5월 예비비 17M, 6월 14M (다른 달 3-5M 대비 3~5배)\n- 실제 이벤트 집행이었는지 확인 필요\n\n## 정리시트 Paid/CRM 정의\n\n- **Paid** = Paid(전환) — 일별 현황 T열 기준. 짤컷/브랜드영상/메타천만원/Paid(가입)은 현재 미포함\n- **CRM** = KakaoMsg (일별 현황 기준)\n- **차이(gap)** = Viral + 짤컷/브랜드영상 + 메타천만원 + 예비비 (월 10~33M)\n\n## 2024년 최종 정리 (24-25년도 대시보드 기준)\n\n| 월 | paid | crm | 브랜디드 |\n|---|---|---|---|\n| 1 | 106,481,907 | 10,568,888 | - |\n| 2 | 54,705,540 | 10,389,148 | - |\n| 3 | 25,360,849 | 5,840,978 | - |\n| 4 | 29,524,600 | 7,560,036 | - |\n| 5 | 77,702,496 | 14,867,567 | 23,500,000 |\n| 6 | 103,005,937 | 15,667,608 | 14,200,000 |\n| 7 | 112,658,174 | 19,570,232 | 5,800,000 |\n| 8 | 83,927,861 | 15,980,008 | 23,500,000 |\n| 9 | 85,877,069 | 16,145,316 | 13,700,000 |\n| 10 | 109,719,644 | 19,414,802 | 10,600,000 |\n| 11 | 213,657,021 | 33,423,614 | 23,000,000 |\n| 12 | 269,809,665 | 25,565,271 | 10,000,000 |\n| **합계** | **1,272,430,763** | **194,993,468** | **124,300,000** |\n\n## 2025년 최종 정리 (26년도 대시보드 기준, 수정 후)\n\n...(이하 생략)",
+  "media_cac_report": "# Media CAC Report 자동화\n\n## 개요\n- **패키지**: `3_데이터/daily/cac/` (6개 모듈) + `shared/` (공용 유틸)\n- **진입점 shim**: `3_데이터/daily/media_cac_report.py` → `cac.main.main()` 호출\n- GitHub Actions 복제: `/Users/do/tripstore-automation/` (shared/, cac/, media_cac_report.py)\n- 매일 10:25 launchd 실행 (`com.tripstore.media-cac-report`)\n- 로그: `3_데이터/daily/media_cac_report.log`\n- 트리거: \"CAC 리포트 실행해줘\"\n- 수동: `python3 media_cac_report.py [YYYY-MM-DD]` (기본: 어제)\n\n## 동작 흐름\n1. BQ `dw.mkt_dashboard_reservation`에서 매체별 예약 데이터 (UTM last-click)\n2. 대시보드 비용 시트에서 매체별 지출/예산 조회\n3. 매체별 CAC 계산 (월초~보고일 + 7일)\n4. **Claude API 분석** (Sonnet) → 핵심 체크포인트, 매체별 분석, 예산 재배분 제안, 목표 분석\n5. Notion 하위 페이지 생성 (성과 및 개선내용 정리 하위, 날짜별)\n6. Slack DM으로 요약 발송\n\n## Claude API 분석 (v2)\n- 프롬프트: `cac_analysis_prompt.txt` (`{DATA_JSON}` 플레이스홀더)\n- 모델: `claude-sonnet-4-20250514`\n- **데이터 단위 변환**: 모든 금액을 만원으로 변환 후 전송 (Claude 산술 오류 방지)\n  - 예산/지출/예약액: `_만원` 접미사 (÷10,000)\n  - CAC: `_원` 접미사 (원 단위 유지)\n- **사전계산 summary**: total_rsv_amt, daily_avg, projected_monthly, gap, required_daily, progress_pct → Claude가 직접 계산하지 않고 인용\n- **매체 제약조건**: NaverBSA_MO/PC = 고정예산(재배분 제외), 나머지 = 조정 가능\n- **응답 형식**: JSON (checkpoints, media_analysis, reallocation, target_analysis)\n- **reallocation.amount**: 순수 숫자만 (만원 단위). 코드에서 \"만원\" 접미사 추가\n- 비용: ~80원/일 (Sonnet, ~2,400원/월)\n- 폴백: API 실패 시 기본 블록 사용 (Claude 분석 없는 간략 버전)\n\n## Notion 출력 구조 (Enhanced)\n1. 핵심 체크포인트 (callout 3-4개)\n2. 매체별 CAC 현황 (table 7열: 매체/월예산/지출/예약/CAC/7일CAC/예약액)\n3. 매체별 상세 분석 (heading3 + bullets per media)\n4. 예산 재배분 제안 (축소/증액 bullets + 예상 효과 callout)\n5. ₩145억 월 목표 분석 (진척 callout + 갭 분석 + 핵심 제안)\n- Notion 페이지 ID: `31f86ade8e7780a69a0ee4c26ca48bfa` (CAC 리포트 저장용)\n\n## BQ 매체 분류 (REGEXP_CONTAINS)\n- NaverSA MO/PC: `utm_source='naver_sa'`, `utm_campaign` REGEXP `_mo_` / `_pc_`\n- NaverBSA MO/PC: `utm_source='naver_bsa'`, `utm_campaign` REGEXP `_mo` / `_pc`\n- Meta AAA/A+SC: `utm_source='Facebook_Ads'`, campaign LIKE `%AAA%` / 나머지\n- Google: PMax / Google_ACe(RE_ACe) / Google_ACI(AU)\n- 크리테오: `utm_source='Criteo'`\n\n## 비용 시트 구조 (`YY년 M월 비용`)\n- Row 5: 월 집행 예정금액 (col D=총, E=Paid, F~O=매체 10개)\n- Row 6: 일 단위 예산 (동일 구조)\n- Row 8: 실 집행금액 (동일 구조)\n- 매체 순서 (F~O): Meta_AAA, Meta_A+SC, Google_RE_ACe, Google_PMax, Google_AU, NaverSA_MO, NaverSA_PC, NaverBSA_MO, NaverBSA_PC, 크리테오\n\n## 공휴일/주말 처리 (2026-03-24 수정)\n- `_is_holiday()`: 주말 + `holidays.KR` (대체휴일 포함)\n- **스킵 조건**: `is_holiday(today)` — 오늘이 휴일일 때만 스킵. `--force` 시 바이패스\n- **역추적 로직** (`main.py`): `report_date`(어제) 자체가 공휴일일 때만 역추적 실행\n  - 월요일 실행 → report_date=일요일(공휴일) → 역추적 → 금-일 3일 합산\n  - 화요일 실행 → report_date=월요일(평일) → 역추적 안 함 → 월요일 1일만\n  - 공휴일 다음날 실행 → report_date=공휴일 → 역추적 → 연속 비영업일 + 마지막 영업일 합산\n  - `cac_1d = daily_budget × num_days / rsv`\n  - Notion 타이틀: `3/20~22(금~일) 매체별 CAC`, Slack/테이블도 동일 라벨\n- 수동 실행 시(`sys.argv[1]`) 항상 단일일, 공휴일 체크 안 함\n- `check_cac_done`: 단일일 + 다일 타이틀 패턴 모두 매칭\n\n## Slack DM\n- 채널: D0AKFTZ0NRJ, Bot API `chat.postMessage`\n- Notion 페이지 링크 포함 (page_id 기반 동적 URL)\n\n## 버그 수정 이력\n\n### 2026-03-11: Claude 분석 품질 개선 (v2)\n...(이하 생략)",
+  "media_mix_2604": "# 미디어믹스 프로세스\n\n## 시트 위치\n- 스프레드시트: `1BlRfMfL8lve9I_QXzqMNRb7171Ts3GBU61ZPfQwFZOQ`\n- 시트 네이밍: `YYMM_미디어믹스` / `YYMM_미디어믹스_성장안`\n- 대시보드(별도): `1-577P8EceQShZcO8ONPJesGZGT7qMo3CVRk2pkyGrCM`\n\n## 자동화 (media_mix_creator.py)\n\n스케줄: 매월 25일 11:00 (launchd) → 26일 월별시트가 결과 참조.\n상세 스펙: `media_mix_creator_spec.md`\n\n## 시트 레이아웃\n\n- 1~17행: 요약 (Paid/CRM/Organic 예산·유입·예약·거래액)\n- 18~50행: 매체별 상세 (기간/매체/광고상품/예산/일평균예산)\n- F42: 브랜디드 콘텐츠 비용 (노션 인플루언서 DB 자동 연동)\n- 54행: 채널 헤더 (G~U: 14채널 + M=brand 미사용)\n- 55~64행: 진행 비중 정리 (55~62 데이터 + 58/61/63/64 수식)\n- 65~74행: 일 평균 (data_days로 나누기)\n- 76행: 비율 조정 (파란색=증액, 빨간색=감액)\n- 79~85행: 가이드라인 테이블 (중앙값 CAC 기준 5단계)\n\n## CVR 벤치마크 (25년 6월 이후)\n\n| 카테고리 | 평균 | 최저 | 최고 |\n|---------|------|------|------|\n| Paid | 0.47% | 0.34% | 0.58% |\n| CRM | 0.77% | 0.65% | 0.96% |\n| Organic | 0.88% | 0.67% | 1.09% |\n\n## 2604 검증 이력 (2026-03-24)\n\n구현 후 end-to-end 검증에서 발견/수정한 버그 8건:\n\n1. **비용 시트 col_map** — Signup부터 전체 매핑 밀림 → 실제 레이아웃 기준 재작성\n2. **비용 출처** — 월간 예산 사용 → API 비용 우선(기간 일치), 대시보드 fallback\n3. **BSA 성장안 캡** — 1.15 미적용 → growth 로직에 max_ratio 재적용\n4. **dry-run 존재 체크** — 기존 시트 있으면 중단 → dry-run은 스킵\n5. **라벨 위치** — C54→C55 수정 + D55 기간 + C76 비율라벨 + 소스 잔존 클리어\n6. **Meta signedup** — `signedup` 캠페인 미분류 → Signup 데이터 A+SC에 합산됨\n7. **소스 잔존 데이터** — 77행 이후 batchClear 추가\n8. **노션 DB ID** — 페이지 ID vs 데이터베이스 ID 혼동\n\n추가 개선:\n- 동적 CAC 가이드라인 (중앙값 기반, BSA/플친 제외)\n- 10% 단위 선형보간\n- 76행 색상 (파란/빨간 폰트)\n- 79~85행 가이드라인 테이블\n- F42 인플루언서 비용 자동 연동\n- 종료 채널 자동 감지 (최근 7일 비용 체크)\n- M열(brand) 미사용 처리 (열 유지, 데이터 미입력, 검증 제외)",
+  "media_mix_creator_spec": "# media_mix_creator.py 최종 스펙\n\n## 패키지 구조\n\n```\n3_데이터/daily/\n├── media_mix_creator.py          # shim (--dry-run, --no-slack, --test)\n├── media_mix/\n│   ├── __init__.py\n│   ├── config.py                 # 14채널 매핑, CVR, 행 레이아웃\n│   ├── bq_queries.py             # BQ 9종 쿼리 + 최근활동 체크 + 노션 인플루언서\n│   ├── cac_optimizer.py          # 동적 CAC 가이드라인 + 비율 산출 + 시나리오\n│   ├── sheet_updater.py          # Sheets API (복제/데이터/수식/색상/테이블)\n│   └── main.py                   # 오케스트레이션\n└── tests/test_media_mix_creator.py  # 63개 테스트\n```\n\n## 실행 흐름 (10단계)\n\n1. 전월 시트 복제\n2. BQ 9개 쿼리 (API 3종 × 전체/최근7일 + visit/join/rsv)\n3. **동적 CAC 가이드라인** — BSA/플친 제외 Paid 채널 중앙값 기준 5단계\n4. **종료 채널 감지** — 최근 7일 비용 ₩0이면 ratio=0%\n5. **10% 단위 선형보간** — CAC 범위 내 위치에 따라 세분화\n6. 보수적/성장안 2종 시트 생성\n7. 76행 비율에 **파란색**(>100%)/빨간색(<100%) 폰트 적용\n8. **79~85행 가이드라인 테이블** (중앙값 + 5단계 범위), 86행 이후 삭제\n9. **F42 브랜디드 콘텐츠** — 노션 인플루언서 DB(21886ade-8e77-807d) → 해당 월 비용 × 1.1\n10. 검증 → 슬랙 DM\n\n## 채널 매핑 (14채널, M열 brand 미사용)\n\n```\nG=AAA, H=A+SC, I=Signup, J=ACe, K=PMax, L=UA,\n[M=Google_brand 열 유지/데이터 미입력],\nN=mobon(미운영), O=Criteo, P=SA_MO, Q=SA_PC, R=BSA,\nS=Push, T=플친, U=Organic\n```\n\n## 동적 CAC 가이드라인\n\n매월 BSA/플친 제외 Paid 채널의 **중앙값 CAC** 기준으로 5단계 자동 산출:\n\n| 구간 | CAC 범위 | 비율 범위 |\n|------|---------|----------|\n| 적극증액 | 0 ~ 중앙값×0.5 | 150% ~ 110% |\n| 증액 | 중앙값×0.5 ~ ×0.85 | 130% ~ 110% |\n| 유지 | 중앙값×0.85 ~ ×1.15 | 110% ~ 90% |\n| 감액 | 중앙값×1.15 ~ ×1.5 | 90% ~ 70% |\n| 대폭감액 | 중앙값×1.5 ~ | 70% ~ 30% |\n\n- 100% = 중앙값 CAC (매월 변동)\n- 범위 내 **10% 단위 선형보간** (경계에서 부드럽게 전환)\n\n## 비용 데이터 출처\n\n- **API 비용 우선**: BQ marketing.meta_display/google_display/naver_keyword (데이터 기간 일치)\n- **대시보드 fallback**: 비용 시트 E5:U5 (API 없는 채널: Criteo, BSA, 플친 등)\n- 비용 시트 컬럼: F=AAA, G=A+SC, H=ACe, I=PMax, J=UA, K=SA_MO, L=SA_PC, M=BSA_MO, N=BSA_PC, O=Criteo, P=KakaoMsg, S=Meta_PB(Signup)\n\n## 종료 채널 감지\n\n- 최근 7일 API 비용 ₩0 → ratio=0% (종료)\n- API 테이블 없는 채널(BSA, Criteo, Push, Organic, 플친)은 감지 대상 제외\n\n## 특수 룰\n\n- **BSA**: max_ratio 1.15 (인벤토리 한계), 성장안에서도 캡 유지\n- **Signup**: CAC 대신 가입당비용(cost/signups) 기준\n- **Push/Organic**: fixed_ratio 1.0\n- **mobon**: fixed_ratio None (미운영)\n- **Meta 캠페인 분류**: `aaa` → AAA, `signup` 또는 `signedup` → Signup, 나머지 → A+SC\n\n## 시트 라벨 업데이트 대상\n\nA1(타이틀), B4(기간), R4(월), S4(일수), F18(예산헤더), B19(상세기간),\nC55(진행비중 타이틀), D55(데이터기간), C76(비율조정 라벨), X76(클리어),\n79~85행(가이드라인 테이블), F42(인플루언서 비용)\n\n## 성장안 로직\n\n보수적 안 복제 후:\n- 효율 채널(ratio >= 1.1) → +10% (최대 1.5)\n- 플친 → ×1.3\n- Organic → 1.15\n- BSA 캡 재적용\n- CVR: Paid 1.10, CRM 1.05, Organic 1.15",
+  "monthly_sheet_layout": "# 월별 시트 생성 — 시트 레이아웃 & 코드 구조\n\n## 시트 레이아웃 (일별 현황 vs 비용 차이)\n\n| | 일별 현황 | 비용 |\n|---|----------|------|\n| **데이터 시작행** | Row 10 (`DATA_START_ROW`) | **Row 9** (`COST_DATA_START_ROW`) |\n| **A열** | 비어있음 | `=D{row}/D{row+38}` 예산소진율 수식 |\n| **B열** | 날짜 serial (USER_ENTERED로 자동변환) | 날짜 serial |\n| **C열** | `=TEXT(B,\"ddd\")` 자동 요일 | `=TEXT(B,\"ddd\")` 자동 요일 |\n| **SUM행** | `DATA_START_ROW + days` (row 40 for 30일) | 없음 (별도 Total 구조) |\n| **전월 평균** | `sum_row + 3` (row 43~) AVERAGEIF | 없음 |\n| **일 예산 섹션** | 없음 | row 42 헤더 → row 46 Total → row 47+ 일할 |\n\n## 비용 시트 매체-컬럼 매핑\n\n| Col | 매체 | 카테고리 | 미디어믹스 매핑 |\n|-----|------|---------|----------------|\n| F | Meta_AAA | 전환(Paid) | META AAA |\n| G | Meta_A+SC_AppWeb | 전환(Paid) | META A+SC 기존 |\n| H | Google_RE_ACe | 전환(Paid) | 구글 ACe |\n| I | Google_Pmax | 전환(Paid) | 구글 Pmax |\n| J | Google_UA | 전환(Paid) | 구글 UA |\n| K | Naver SA_MO | 전환(Paid) | 네이버 SA WEB-MO |\n| L | Naver SA_PC | 전환(Paid) | 네이버 SA WEB-PC |\n| M | Naver BSA_MO | 전환(Paid) | 네이버 BSA ÷ 2 |\n| N | Naver BSA_PC | 전환(Paid) | 네이버 BSA ÷ 2 |\n| O | 크리테오 | 전환(Paid) | 크리테오 |\n| P | KakaoMsg | CRM | 카카오_플친 |\n| Q | Viral | 인지 | (직접 입력) |\n| R | 브랜디드 콘텐츠 | 인지 | 인플루언서 DB 합산 × 1.1(VAT) |\n| S | Meta_PB | 가입(Paid) | META A+SC 가입광고 |\n| T | 카드사 할인 | 결제 혜택 | (직접 입력) |\n| U | 기타비용 | 기타 | (직접 입력) |\n\n## 비용 시트 행 구조\n\n- **Row 1~3**: 상단 요약\n- **Row 4**: 매체 헤더\n- **Row 5**: 4월 집행 예정금액 (월간 총액, D5=sum, E5=Paid합)\n- **Row 6**: 일 단위 예산 (`=col5/30`)\n- **Row 8**: 헤더 (예산소진율, 실집행금액, 요일...)\n- **Row 9~38**: 데이터 (30일, A열=소진율 `=D{row}/D{row+38}`)\n- **Row 42**: \"4월 일 예산\" 헤더\n- **Row 43~45**: 카테고리/매체 헤더\n- **Row 46**: Total (`=F5`, `=G5`, ... `=R5`)\n- **Row 47~76**: 일할 예산 (B=날짜, D=sum, F~U=`=col$46/30`)\n\n## 일별 현황 시트 주요 컬럼\n\n| Col | 헤더 | 수식 패턴 |\n|-----|------|----------|\n| E | 일 유입 수 목표 | `=$F$3/{days}` |\n| I | 일 예약 수 목표 | `=$E$3*{weight}/{days}` (전월 실측 기반 가중치) |\n| U | Paid 일 목표 | `=$E$4/{days}` |\n| AA | Paid 유입 목표 | `=$F$4/{days}` |\n| AD | CRM 일 목표 | `=$E$5/{days}` |\n| AJ | CRM 유입 목표 | `=$F$5/{days}` |\n| AM | Org 일 목표 | `=$E$6/{days}` |\n| AQ | Org 유입 목표 | `=$F$6/{days}` |\n| S3 | 월말 날짜 | 해당 월 마지막 날 serial |\n\n## I열 예약 가중치 로직\n\n전월 K열(실제 예약 수) 실측 데이터에서 산출:\n1. `rsv > 0`인 날만 사용 (미집계 날 제외)\n2. 화~금 평균 / 토·일·월 평균 = 비율 `r` 산출\n3. `W_low = days / (N_high × r + N_low)`, `W_high = r × W_low`\n4. `N_high × W_high + N_low × W_low = days` 보장 → SUM(I열) = E3\n\n**요일 그룹**: 화·수·목·금 = 고비중(1.09~), 토·일·월 = 저비중(0.86~)\n\n## 목표 수치 소스 (자동 반영)\n\n시트 생성 시 `apply_media_mix()` + `apply_influencer_cost()`가 자동 실행:\n\n- **미디어믹스** → 비용 row 5 매체별 예산, row 6 일단위, row 46+ 일 예산, D2:G6 목표\n  - 시트 ID: `1BlRfMfL8lve9I_QXzqMNRb7171Ts3GBU61ZPfQwFZOQ`\n  - 탭명 탐색: `YYMM_미디어믹스` 우선 → `YYMM_미디어믹스_성장안` 대체\n  - 파싱: 매체별 예산 (F~S), Paid/CRM/Organic 목표 (예약수·유입수)\n- **인플루언서 비용** → 비용 R5/R8\n  - 노션 DB: `21886ade-8e77-80e0-a31b-000b2e206fda` (협업 인플루언서 아카이브)\n  - 필터: `최종 업로드 일자`가 해당 월, `비용` number 합산 × 1.1(VAT)\n\n## 외부 시트 참조 (수식 오프셋 대상)\n\n| 패턴 | 예시 | 오프셋 |\n|------|------|--------|\n| `[Con]매체명` | `='[Con]Meta_AAA'!J1146` | +src_days (31) |\n...(이하 생략)",
+  "naver_sa_optimizer": "## 전체 흐름 (월/목)\n\n| 시간 | 단계 | 스크립트 | 출력 |\n|------|------|----------|------|\n| 10:00 | 조정 영향 분석 | `sa_impact_report.py` | 노션 페이지 + 슬랙 DM |\n| 10:30 | 사전 조정안 | `naver_sa_bid_optimizer.py --prerun` | **노션 사전분석 페이지** + 슬랙 DM (적용 X) |\n| 11:00 | CPC 실적용 | `naver_sa_bid_optimizer.py --apply --verify-after` | **노션 적용결과 페이지** + API 검증 + 슬랙 DM |\n| 이후 3일 | 모니터링 | daily briefing / CAC report | 일일 성과 추이에서 이상 감지 |\n\n## 조정 기준 상수\n\n| 상수 | 값 | 설명 |\n|------|-----|------|\n| `TARGET_CPA` | ₩80,000 | BQ 예약 기준 CAC 목표. 이 값을 중심으로 상향/하향 결정 |\n| `LOOKBACK_DAYS` | 14일 | 성과 판단 기간. 7일→14일 변경(2026-03-13). 전환 데이터 부족 + 변동성 완화 |\n| `MIN_CLICKS` | 15 | 14일간 클릭 15회 미만이면 판단 보류 (노이즈 방지) |\n| `MIN_COST_FOR_PAUSE` | ₩100,000 | 전환 0건 + 비용 10만원 초과 시 30% 하향 |\n| `MAX_DAILY_CHANGE_PCT` | ±30% | 1회 실행당 최대 변경폭 제한 |\n| `CPC_FLOOR` | ₩70 | 입찰가 하한 (이하로 내려가지 않음) |\n| `CPC_CEILING` | ₩10,000 | 입찰가 상한 |\n| `DOWN_HIGH_CPA_PCT` | 0.12 | 고CPA 하향 조정폭 (기존 0.20→0.12, 2026-03-23) |\n| `MIN_DAILY_CONV_FOR_UP_SLIGHT` | 0.03 | 소폭 상향 최소 일평균 전환 (0.05→0.03, 2026-03-24) |\n| `SAFEGUARD_MIN_DAILY_CLICKS` | 5 | 세이프가드 일 클릭 임계값 (2026-03-23) |\n| `SAFEGUARD_RECOVERY_PCT` | 0.15 | 세이프가드 복원 조정폭 +15% (0.08→0.15, 2026-03-24) |\n| `EXTENDED_LOOKBACK_DAYS` | 21 | 확장 분석 기간 (2026-03-23) |\n| `EXTENDED_MIN_CLICKS` | 10 | 확장 기간 최소 클릭, 기존 15 대비 완화 (2026-03-23) |\n\n## 안전장치: 브랜드 보호 & 롤백 쿨다운 (2026-03-19 추가)\n\n### 자사 브랜드 키워드 보호\n- `BRAND_KEYWORDS`: `트립스토어`, `tripstore`, `트립 스토어`, `trip store`\n- 키워드명이 위 목록에 해당하면 CPA 규칙과 무관하게 **영구 조정 제외**\n- **Why:** 3/16 조정에서 트립스토어가 up_low_cpa로 상향되어 CPA ₩2.2K→₩4.1K, 전환 -30% 악화. 자사 브랜드는 CPA 기반 자동조정 대상이 아님\n\n### 롤백 쿨다운\n- `ROLLBACK_COOLDOWN_DAYS`: 7일\n- `bid_logs/*_rollback.json`에서 최근 7일 이내 롤백된 키워드 ID를 자동 감지 → 재조정 스킵\n- 7일 경과 후 쿨다운 자동 해제 → 규칙이 다시 판단\n- 롤백 실행 시 `rollback_bids.py`가 `bid_logs/YYYY-MM-DD_rollback.json` 자동 저장\n- **Why:** 롤백 직후 같은 데이터로 다시 조정하면 롤백 의미 없음. 충분한 데이터 축적 후 재평가\n\n## 캠페인 오버라이드 (2026-03-23~)\n\n- `config.py`의 `CAMPAIGN_OVERRIDES` dict로 캠페인 단위 강제 조정\n- `fnmatch` 패턴 매칭 (예: `list_vtn*` → 9개 베트남 캠페인)\n- `until` 날짜 만료 시 자동 해제 → 정상 CPA 규칙 복귀\n- `min_bid`: 이 이하면 추가 하향 안 함 (반복 하향 방지)\n- `OVERRIDE_MAX_CHANGE_PCT = 0.50`: 오버라이드 전용 최대 변경폭 (일반 30%보다 넓음)\n- CPC_FLOOR(70) 하한은 유지\n- 롤백 쿨다운 면제, 세이프가드/CPA 규칙 전부 스킵\n- sanity 방향편중에서 제외, `ℹ` 접두사로 blocked 판정 미포함\n- log_io: `override` 플래그 직렬화, 세이프가드 감시 대상에서 제외\n- **Why:** 비엣젯항공 4월 운항 중단 — 베트남 전환 불가 상황에서 CPA 규칙이 과거 데이터로 상향/복원 제안하는 문제\n\n### 현재 오버라이드\n없음 (2026-03-23 해제, 베트남 CPA 규칙 적용으로 전환)\n\n## CPA 규칙표 (6단계 + 세이프가드)\n\n| 우선순위 | 조건 | 액션 | 변경폭 |\n|----------|------|------|--------|\n| 0 | 이전 하향 키워드 + 일 클릭 <5 | 복원(세이프가드) | **+15%** (기존 +8%) |\n| 1 | 전환 0건 & 비용 ≥ ₩100K | 하향(전환0) | -30% |\n| 2 | CPA > 목표 × 1.3 (₩104K) | 하향(고CPA) | **-12%** (기존 -20%) |\n| 3 | CPA > 목표 (₩80K) | 하향 | -10% |\n| 4 | CPA < 목표 × 0.7 (₩56K) | 상향(저CPA) | +15% (기존 ×0.5) |\n| 5 | CPA < 목표 × 0.85 (₩68K) | 상향 | +10% (기존 ×0.7) |\n| 6 | CPA < 목표 (₩80K) + 일평균 전환 ≥0.03 | 상향(소폭) | +5% |\n\n> 전환 = BQ `mkt_dashboard_reservation` 예약건수 (First 50% + Last 50% 기여모델, 7일 윈도우). 네이버SA API 자체 전환 사용 안 함.\n\n## 세이프가드 & 확장 lookback (2026-03-23~)\n\n...(이하 생략)",
+  "paid_media_ops": "## 성과 평가 기준\n\n- **BQ 기준 CAC로 성과 판단** — 매체 자체 전환(Meta 뷰스루 등)은 부풀려져 있으므로 사용 금지\n- BQ 테이블: `tripstore-352708.dw.mkt_dashboard_reservation`\n- 예약건수 = `SUM(value)` (COUNT(*)가 아님, value 컬럼이 예약건수)\n- 비용: 대시보드 스프레드시트 `26년 N월 비용` 시트 Row 8(실집행), Row 5(월예산), Row 6(일예산)\n- 매체 순서 (F~O열): Meta_AAA, Meta_A+SC, Google_ACe, Google_PMax, Google_AU(ACI), NaverSA_MO, NaverSA_PC, NaverBSA_MO, NaverBSA_PC, 크리테오\n\n## API를 통한 예산 변경\n\n### Meta Marketing API\n- 캠페인 일예산 변경: `POST https://graph.facebook.com/v21.0/{campaign_id}` body `{\"daily_budget\": 금액}`\n- 캠페인 정지: body `{\"status\": \"PAUSED\"}`\n- 인증: `.env`의 `META_ACCESS_TOKEN` (Bearer)\n- SSL: `certifi.where()` 필수\n- .env 로딩: `source .env` 안 됨 → Python에서 수동 파싱 필요\n\n### Google Ads API\n- `google-ads.yaml`: `3_데이터/tools/google-ads.yaml`\n- 계정: `9152282635`\n- 예산 변경: `CampaignBudgetService.mutate_campaign_budgets()`, `amount_micros` 단위 (1원 = 1,000,000 micros)\n- FieldMask: `from google.protobuf import field_mask_pb2` 사용 (Google Ads 자체 FieldMask 아님)\n- 캠페인 조회: `GoogleAdsService.search()` GAQL 쿼리\n\n### Naver SA API\n- 입찰가 자동 조정: `naver_sa_bid_optimizer.py` (현재 dry-run)\n- 예산 변경 API는 미구현\n\n## 매체별 운영 현황\n\n> 마지막 업데이트: 2026-03-26. CAC 수치는 시점별 스냅샷이므로 현재 값은 BQ 직접 조회 필요.\n\n### Criteo\n- **2026-03-10경 유입 캠페인 종료, 리타겟팅(`sc_criteo_da_con`)만 운영 중**\n- 리타겟팅 전환 후 CAC 대폭 개선: 전체 15일 평균 185K → 최근 3일 5~12만원대 (2026-03-16 기준)\n- 일예산 30만원 (시트 기준)\n- 리타겟팅은 효율 좋으므로 현행 유지\n\n### Meta\n- **241029 (ts_purchase_asc_webapp_241029)**: A+SC 캠페인, 메인 전환 캠페인. BQ CAC ~10.8만원 (2026-03-16 기준, 15일 평균). 단일 캠페인 중 최고 효율\n- **241031 (ts_purchase_AAA_webapp_241031)**: AAA 캠페인. **PAUSED** (2026-03-16~). BQ CAC 30만원+으로 비효율 판단\n- **250414 (ts_signedup_asc_webapp_250414)**: 가입 최적화. BQ 구매 CAC 81만원이지만 가입 목적\n\n### Google\n- **PMax (ts_purchase_pmax_webapp_250109)**: BQ CAC ~14.8만원 (2026-03-16 기준, 15일 평균). W2에 예약 급증 추세\n- **ACe (google_aos_ac_re_ACe_2306_1)**: BQ CAC ~14.7만원 (2026-03-16 기준, 15일 평균). W2 예약 하락 추세\n- **ACI (google_aos_ac_ua_purchase_2508)**: BQ CAC ~12.2만원 (2026-03-16 기준, 15일 평균). W2 예약 급증 추세\n\n### Naver SA\n- 상세: `memory/naver_sa_optimizer.md` 참조\n- 주 2회 월/목 11:00 CPC 자동 조정 (--apply, 2026-03-17 첫 실적용)\n- NaverBSA = 고정예산 (CAC 재배분 대상 제외)\n\n## 예산 변경 이력\n\n### 2026-03-16\n| 매체 | 변경 | 전 | 후 | 사유 |\n|------|------|---|---|------|\n| Meta 241029 (A+SC) | 증액 | 50만/일 | 80만/일 | BQ CAC 10.8만, 단일 캠페인 최고 효율 |\n| Meta AAA | 정지 | 5만/일(ACTIVE) | PAUSED | BQ CAC 30만+, 비효율 |\n| Google PMax | 증액 | 60만/일 | 70만/일 | 예산 102% 소진 + W2 예약 급증, CAC 14.8만 |\n| 순증 | | | +35만/일 | 볼륨 확보 우선 판단 |\n\n### 2026-03-18\n| 매체 | 변경 | 전 | 후 | 사유 |\n|------|------|---|---|------|\n| Google PMax | 증액 | 72만/일 | 82만/일 | 3/17 CAC 리포트 효율 급개선, ML 학습 안정 확인 |\n| Google AU (ACI) | 증액 | 50만/일 | 60만/일 | 3/17 CAC 리포트 효율 급개선, ML 학습 안정 확인 |\n| 순증 | | | +20만/일 | PMax +14%, AU +20% 증액 |\n\n### 2026-03-20\n| 매체 | 변경 | 전 | 후 | 사유 |\n|------|------|---|---|------|\n| Google AU (ACI) | 증액 | 60만/일 | 77만/일 | 사용자 요청 |\n\n### 2026-03-26\n| 매체 | 변경 | 전 | 후 | 사유 |\n|------|------|---|---|------|\n...(이하 생략)",
+  "sa_impact_report": "## 개요\n- `3_데이터/daily/sa_impact/` (8개 모듈) + `sa_impact_report.py` (shim)\n- 스케줄: 월/목 10:00 (prerun 10:30 이전 완료)\n- 수동: \"SA 조정 영향 분석해줘\" / `--days-after 3`으로 중간 점검\n\n## 패키지 구조 (2026-03-19~)\n```\nsa_impact/\n├── __init__.py        # main export\n├── config.py          # NOTION_PAGE_ID, SLACK_DM_CHANNEL, PROMPT_PATH 등\n├── data.py            # find_bid_log, fetch_after_stats, fetch_bq_reservations_by_keyword\n├── analyze.py         # aggregate(), effectiveness(), analyze_impact() — 순수 함수\n├── notion_blocks.py   # build_notion_blocks, _fmt_won, _fmt_pct — 순수 함수\n├── slack_msg.py       # build_slack_message — 순수 함수\n├── claude_call.py     # call_claude_analysis (shared.claude 위임)\n└── main.py            # 오케스트레이션 + create_notion_page\n```\n- shared/ 중복 17개 제거 (shared.notion, shared.claude, shared.slack, shared.naver_sa, shared.bq 활용)\n- **테스트**: `test_sa_impact.py`(29개) — aggregate, effectiveness, analyze_impact, notion_blocks, slack_msg\n\n## 데이터 흐름\n1. `bid_logs/YYYY-MM-DD_bid_changes.json`에서 조정 기록 로드 (dry_run=false만)\n2. 네이버 SA Stats API + BQ 예약으로 after 성과 수집\n3. before(lookback 14일 일평균) vs after(7일 일평균) 비교\n4. Claude 분석 (로컬=CLI Opus / GA=API Sonnet)\n5. Notion 하위페이지 + Slack DM 배포\n\n## 리포트 구조\n- Executive Summary (callout)\n- Before/After 전체 비교 (상향/하향 소그룹 포함)\n- 규칙별 Cohort 분석 (6개 액션별 유효율)\n- Top Impact 키워드 10개\n- 역효과 키워드 (하향→CPA상승, 상향→전환감소, 하향→노출소멸)\n- 규칙 유효율 점수 (시각적 바)\n- AI 분석 & 제안\n\n## 핵심 설정\n- `NOTION_PAGE_ID`: `31f86ade8e7780a69a0ee4c26ca48bfa` (성과 및 개선내용 정리)\n- `SLACK_DM_CHANNEL`: `D0AKFTZ0NRJ`\n- `MIN_CLICKS_FOR_ANALYSIS`: 5 (after 클릭 5 미만 → 데이터 부족 플래그)\n- 프롬프트: `sa_impact_analysis_prompt.txt`\n\n## CLI 인자\n- `--date YYYY-MM-DD`: 특정 조정일 지정\n- `--days-after N`: 분석 기간 (기본 7일, 중간 점검 시 3)\n- `--check-only`: GA failover용\n\n## Claude 분석 공통 규칙 (2026-03-17~)\n모든 자동화 스크립트: 로컬=CLI(Opus) / GA=API(Sonnet)\n- `sa_impact_report.py`: 신규 — CLI/API 분기 내장\n- `media_cac_report.py`: `_call_claude_api` → CLI/API 분기로 전환\n- `blog_daily_report.py`: `call_claude_api` → CLI/API 분기로 전환\n- `daily_metrics_briefing.py`: CLI에 `--model claude-opus-4-6` 추가",
+  "seo_blog_prompt": "## SEO 블로그 프롬프트 규칙 (2026-03-18 최종)\n\n- 파일: `콘텐츠/SEO/blog_prompt_v2.md` + `.txt` (양쪽 동일 유지 필수)\n\n### 이미지\n- 예전 두 줄 세트 포맷 유지: `<IMAGE_ASSET key=\"자산명\"></IMAGE_ASSET>` + `<p style=\"color:#888...\">[이미지 삽입: ...]</p>`\n- 참고 예시는 `<p class=\"ts-image-placeholder\">` 래퍼로 감쌈 (CMS 셀렉터)\n- description 속성 방식 사용 안 함 — CMS 이미지 자동생성이 안 되기 때문\n\n### 서론\n- 팩트 요약 포맷 (Q&A 마크업 없음). 핵심 답변 1~2문장 + 본문 안내 1문장\n- HTML: `<p>팩트 요약 문장. 본문 안내 문장.</p>`\n- Q., A., `<strong>`, `<br/>` 등 Q&A 전용 마크업 사용하지 않음\n\n### 마무리\n- \"마무리\" H2 + \"트립스토어에서 비교하고 예약하기\" H3 두 단락 분리 금지\n- H2 1개 + 본문 1문단으로 통합. H3 소제목 없음\n- H2 제목: \"마무리\" 금지, CTA성 제목 사용 (예: \"이번 [지역명] 여행, 트립스토어에서 더 합리적으로!\")\n- 본문: 요약 + 트립스토어 소개를 한 문단에 자연스럽게 연결 (100~150자)\n\n### 하단 FAQ\n- \"자주 묻는 질문 요약\" H2로 Q&A 2~5개 유지\n- AI 인용 3중 유지: CMS 위젯 + 가시적 FAQ + JSON-LD",
+  "seo_focus_keywords": "## 포커스 키워드 파일\n\n- **현행**: `콘텐츠/SEO/focus_keywords_2000.csv` (1,901개, v2, 2026-03-25)\n- **v1 백업**: `콘텐츠/SEO/focus_keywords_2000_v1_backup.csv` (2,000개, 검색량 30~14800)\n- **발행 키워드**: `콘텐츠/SEO/published_keywords.json` (어드민 API, 2,197개)\n- **원본 후보**: `콘텐츠/SEO/keyword_candidates_raw.json` (2,102개)\n- **생성 스크립트**: `콘텐츠/SEO/expand_keywords.py`\n\n## v2 스코어링 공식 (2026-03-25 변경)\n\n```\n전환기대값 = sqrt(검색량) × 여행지 실측CVR\n```\n\n- **sqrt**: 검색량 체감 효과 반영. 6600 vs 110 = 60배 → 7.7배\n- **여행지 실측CVR**: Amplitude top_posts 30일 데이터, 조회 500+ 여행지만 신뢰\n  - 장가계 9.3% | 스페인 7.5% | 다카마쓰 7.4% | 오키나와 5.9% | 삿포로 5.4%\n  - 도쿄 4.8% | 후쿠오카 4.6% | 다낭 4.1% | 오사카 3.6% | 미국 0.7%\n- **fallback**: 여행지 데이터 부족 → 권역 평균CVR → 전체 평균 3.77%\n- **목적**: 서비스 전환(블로그→CTA 클릭) 극대화. 예약 전환 아닌 유입 전환 기준\n\n### v1 공식 (폐기)\n```\n효율 점수 = log2(검색량 + 1) × 키워드유형 가중치\n```\n문제: CVR이 유형별 4단계(4.0~6.3%)로 뭉뚱그려져 사실상 검색량 순위와 동일. 여행지별 CVR 차이(0.7~9.3%) 미반영.\n\n## 구축 원칙\n\n1. **검색량은 반드시 Google Ads API 실측** — 추정/임의 수치 사용 금지\n   - `KeywordPlanIdeaService.GenerateKeywordIdeas` 사용\n   - keyword_seed 최대 20개/배치 → 배치 처리\n   - 설정: `3_데이터/tools/google-ads.yaml`, customer_id=9152282635\n   - geo=한국(2410), language=한국어(1012)\n2. **검색량 260+ 최소 기준** — 500 미만은 월 1전환 미만, 260~499는 경계\n3. **국내 키워드 제외** — 트립스토어는 해외 여행만 취급\n4. **크루즈 키워드 제외** — 상품 없음\n5. **호텔 고유명 제외** — \"칸 데오 호텔 오사카 난바\" 같은 특정 호텔명은 블로그 부적합\n6. **발행 키워드 완전 배제** — published_keywords.json과 대조\n\n## CSV 컬럼 (v2, 11개)\n\n순위, 포커스 키워드, 월 검색량, 키워드 유형, 권역, 국가, 여행지, 전환기대값, 실측CVR, CVR출처, 콘텐츠 그룹\n\n- 인코딩: UTF-8 BOM (`utf-8-sig`)",
+  "sparkplus_booking": "## 개요\n\n매주 수요일 10:00에 +14일 수요일 14:30~15:30 3층 3E 회의실을 Playwright 브라우저 자동화로 예약.\n\n**Why:** 매주 수작업으로 예약하던 반복 업무 자동화\n**How to apply:** 예약 실패 시 Slack DM으로 알림, 직접 예약 URL 제공\n\n## 파일 구조\n\n```\n3_데이터/daily/\n├── sparkplus_booking.py              # Shim\n├── sparkplus_booking/                # 6 모듈\n│   ├── __init__.py\n│   ├── config.py                     # URL, 셀렉터, get_target_date()\n│   ├── browser.py                    # Playwright launch/close/screenshot/find_element\n│   ├── steps.py                      # 5단계 async 예약 흐름\n│   ├── slack_msg.py                  # 성공/실패 메시지 포맷\n│   └── main.py                       # CLI + 오케스트레이션 (shared/ import)\n```\n\n## CLI 옵션\n\n- `--dry-run`: 예약하기 클릭 스킵 (스크린샷만)\n- `--no-slack`: Slack 발송 스킵\n- `--headed`: 브라우저 UI 표시\n- `--ref-date YYYY-MM-DD`: 기준 날짜 오버라이드\n\n## 크리덴셜\n\n- `.env`에 `SPARKPLUS_ID` (아이디), `SPARKPLUS_PASSWORD` 필요\n- 로그인: `member.sparkplus.co/login` → 리다이렉트\n- 공간: `www.sparkplus.co/space/33/floor/3`\n\n## 사이트 구조 (확인 완료)\n\n- **로그인**: `input[placeholder=\"아이디\"]` + `input[type=\"password\"]` + `button.btn_comm`\n- **날짜**: `react-datepicker`, 월 이동 버튼, `aria-label=\"Choose Wednesday, April 8th, 2026\"` 패턴\n- **회의실**: cursor-pointer div, 텍스트로 \"3E\" 매칭\n- **시간**: `button[data-time=\"14:30\"]` / `button[data-time=\"15:30\"]`, \"시작시간\"/\"종료시간\" 섹션 구분\n- **예약**: `button:has-text(\"예약하기\")`\n- **예약 가능 범위**: 당일 기준 14일 → 수요일 실행 시 +14일 수요일이 딱 열림\n\n## 예약 흐름 (5단계)\n\n1. `step_login` — member.sparkplus.co 로그인, redirect로 공간 페이지 이동\n2. `step_navigate_to_space` — /space/33/floor/3 확인/이동\n3. `step_select_date` — react-datepicker 열기, 월 이동, aria-label로 날짜 클릭\n4. `step_select_room_and_time` — 3E 회의실 카드 클릭, 시작/종료시간 선택, 모달 처리\n5. `step_confirm_booking` — 예약하기 클릭 (dry_run 시 스킵)\n\n## 스케줄\n\n- launchd: `com.tripstore.sparkplus-booking.plist`\n- 매주 수요일(Weekday=3) 10:00\n- Python 3.14, WorkingDirectory=daily/\n- stdout/stderr → `sparkplus_booking_stdout.log` / `sparkplus_booking_stderr.log` (Python FileHandler `sparkplus_booking.log`와 분리 — fd 충돌 방지)\n\n## 장애 이력\n\n### 2026-03-25: launchd exit 78 (EX_CONFIG) 스케줄 중단\n- **증상**: 수요일 10:00 자동 실행 안 됨, `launchctl list` exit code 78\n- **원인**: plist `StandardOutPath`와 스크립트 `FileHandler`가 동일 파일(`sparkplus_booking.log`) → fd 충돌 → 즉시 crash → exit 78 → launchd 스케줄 영구 중단\n- **조치**: (1) plist stdout/stderr를 `_stdout.log`/`_stderr.log`로 분리 (2) 실패 시 `sys.exit(2)` (75-78 launchd 예약 코드 회피) (3) launchd job 리로드\n- **참고**: `troubleshooting.md` > \"launchd exit 78\" 항목\n\n## 상태\n\n개발 완료, launchd 등록 완료. 운영 중 (2026-03-24~).\n- shared/ 모듈 사용: config (load_env), slack (send_slack_dm)\n- 스크린샷: `sparkplus_booking_screenshots/` 에 단계별 캡처 저장\n- GA 레포 동기화 완료 (`/Users/do/tripstore-automation/`)",
+  "testing": "## 실행\n\n- 경로: `3_데이터/daily/tests/`\n- 실행: `cd 3_데이터/daily && python3 -m pytest tests/ -v`\n- GA 레포 동기화: `cp tests/*.py /Users/do/tripstore-automation/tests/`\n\n## 파일별 상세\n\n| 파일 | 대상 | 테스트 수 |\n|------|------|-----------|\n| `test_briefing.py` | `briefing/` 9개 모듈 (Notion 블록, Amplitude, 순위분석, Claude, Slack) | 80개 |\n| `test_daily_sync.py` | `daily_sync.py` 유틸 5개 (`_normalize_date`, `_format_date_for_sheet`, `_to_number`, `_is_date_like`, `_bq_cmd`) | 39개 |\n| `test_shared.py` | `shared/` 4개 모듈 (config, notion, claude, slack) | 43개 |\n| `test_shared_naver_sa.py` | `shared/naver_sa.py` + `shared/bq.py` (서명, 인증, BQ) | 7개 |\n| `test_cac.py` | `cac/` 6개 모듈 (compute, notion_blocks, slack_msg 등) | 43개 |\n| `test_sa_optimizer.py` | `sa_optimizer/` (apply_bid_rules, sanity_check, slack_msg, _match_campaign_rsv, notion_report) | 56개 |\n| `test_sa_impact.py` | `sa_impact/` (aggregate, effectiveness, analyze_impact, notion_blocks, slack_msg) | 29개 |\n| `test_weekly_retro.py` | `weekly_retro/` (날짜유틸, 텍스트추출, todos파싱, KPI변환, 팀요약, 블로그요약, 프롬프트) | 55개 |\n| `test_sync_gate.py` | `shared/sync_gate.py` (마커 생성/삭제, 폴링 대기, 즉시 체크) | 14개 |\n| `test_timeline_alert.py` | `timeline_alert/` (parse 6함수, slack_msg, config) | 43개 |\n| `test_backlog_alert.py` | `backlog_alert/` (is_overdue, calc_overdue_days, filter_by_backlogs, extract_task_info, group_by_backlog, group_by_pm, find_empty_backlogs, format_slack_message, format_slack_message_by_pm, config) | 97개 |\n| `test_promo_tasks.py` | `promo_tasks/` (merge_tasks, calc_task_dates, validate_schedule, format_preview, config) | 51개 |\n| `test_blog.py` | `blog/` 6개 모듈 (amplitude 파싱, notion_blocks, slack_msg, config, delta 헬퍼) | 36개 |\n| `test_influencer_scout.py` | `influencer_scout/` (config, 하드필터, scoring 8팩터, audience_fit 헬퍼, Claude mock, blend, 통합, rank, duration, notion_blocks, estimated_views, slack_msg) | 136개 |\n| `test_monthly_sheet_creator.py` | `monthly_sheet/` 3개 모듈 (config, main — 시트 복제, 날짜·수식·전월평균 업데이트, 검증) | 66개 |\n| `test_asa_optimizer.py` | `asa_optimizer/` (apply_bid_rules, sanity_check, slack_msg, _match_campaign_rsv) | 33개 |\n| `test_media_mix_creator.py` | `media_mix/` 5개 모듈 (config, cac_optimizer, bq_queries, sheet_updater, main) | 63개 |\n| `test_oci_upload.py` | `oci_upload.py` (BQ 조회, 전환 액션 매핑, 업로드 요청, Slack 알림) | 8개 |\n| `test_ad_perf.py` | `ad_perf/` + `ad_pipeline/` (registry 매핑, UTM convention, performance_rules, evaluate_all, slack_msg, log_io, build_creative_metrics, ad_register_simple) | 33개 |\n| `test_gads_perf.py` | `gads_perf/` (Google Ads PMax/비PMax 에셋 성과 평가) | ⚠ 수집에러 |",
+  "timeline_weekly_alert": "# 타임라인 주간 오픈 알림\n\n## 패키지 구조 (2026-03-20 모듈 분리)\n- `timeline_weekly_alert.py` — shim (timeline_alert/ 패키지 위임)\n- `timeline_alert/` 6모듈:\n  - `config.py`: 상수 (DATABASE_ID, TIMELINE_PAGE_URL, STATUS_ICONS)\n  - `parse.py`: 순수 함수 6개 (get_week_range, extract_title, get_relation_ids, resolve_tasks_to_project_ids, filter_open_tasks, extract_project_info)\n  - `data.py`: Notion API I/O (query_active_projects, find_task_db_info, query_open_tasks_direct, fetch_page_title, scan_task_pages)\n  - `slack_msg.py`: Slack 메시지 포맷팅 (format_slack_message)\n  - `main.py`: 오케스트레이션 (수집→파싱→변환 3단계)\n  - `__init__.py`: re-export main\n\n## 핵심 설계\n- `extract_project_info` 순수화: `(token, parent_cache)` → `parent_names: dict` 로 변경, I/O 제거\n- 2단계 조회: 프로젝트 → Task DB 직접 쿼리 (최적화) / Fallback: 프로젝트별 개별 Task 스캔\n- shared/ 사용: config, notion, slack\n\n## 스케줄\n- 매주 월 10:30 launchd (`com.tripstore.timeline-weekly-alert`)\n- 발송: 데일리티타임 (C06U7MZCSDB)\n- 수동: `python3 timeline_weekly_alert.py [YYYY-MM-DD]`\n\n## 테스트\n- `test_timeline_alert.py` 43개 (7클래스: WeekRange, ExtractTitle, GetRelationIds, ResolveTasksToProjectIds, FilterOpenTasks, ExtractProjectInfo, FormatSlackMessage + Config)\n- 모든 테스트가 순수 함수 대상 — 모킹 불필요",
+  "troubleshooting": "# 트러블슈팅 가이드\n\n## BQ 인증 만료/오류\n- **증상**: `bq query` 실행 시 `401 Unauthorized` 또는 `Could not refresh access token`\n- **로컬**: `gcloud auth application-default login` 재실행 → 브라우저 인증\n- **GA**: GCP 서비스계정 키 갱신 → `gh secret set GOOGLE_CREDENTIALS_JSON < key.json`\n- **확인**: `bq query --use_legacy_sql=false 'SELECT 1'`\n\n## launchd Job이 안 돌 때\n- **상태 확인**: `launchctl list | grep tripstore`\n  - PID 열이 `-`: 대기 중 (아직 트리거 안 됨)\n  - PID 열이 숫자: 현재 실행 중\n  - status 열이 0: 마지막 실행 정상 종료\n  - status 열이 비0: 마지막 실행 에러\n- **수동 트리거**: `launchctl kickstart gui/$(id -u)/com.tripstore.daily-update`\n- **plist 재로드**: `launchctl unload ~/Library/LaunchAgents/com.tripstore.*.plist && launchctl load ~/Library/LaunchAgents/com.tripstore.*.plist`\n- **로그 확인**: `3_데이터/daily/스크립트명.log`\n\n## Google Sheets API 할당량 초과\n- **증상**: `429 Too Many Requests` 또는 `RESOURCE_EXHAUSTED`\n- **원인**: 분당 60회 읽기/쓰기 제한 초과 (보통 daily_sync에서 다수 시트 동시 접근 시)\n- **대응**: 5분 대기 후 재실행. 지속 시 API 호출 간 sleep 추가 검토\n- **확인**: GCP 콘솔 → APIs & Services → Quotas\n\n## Notion API rate limit\n- **증상**: `429 rate_limited` 응답\n- **제한**: 초당 3회 요청\n- **대응**: 스크립트에 자동 재시도 로직 있음 (exponential backoff). 지속 시 블록 수 줄이기\n- **daily_metrics_briefing**: 100블록 초과 시 PATCH로 분할 전송 — 이 때 rate limit 걸리기 쉬움\n\n## Meta API 토큰 만료\n- **증상**: `Error validating access token` 또는 daily_sync Meta 동기화 실패\n- **주기**: 시스템 사용자 토큰 60일\n- **갱신**: Meta Business Suite → 설정 → 시스템 사용자 → 토큰 생성 → `.env`의 `META_ACCESS_TOKEN` 교체\n- **GA도 갱신**: `gh secret set META_ACCESS_TOKEN --repo sohajunikim-prog/tripstore-automation-`\n\n## Claude CLI 호출 실패 (daily_metrics_briefing)\n- **증상**: 브리핑 노션 페이지가 단순 템플릿으로 생성됨 (폴백 모드)\n- **원인**: Claude CLI 타임아웃(180초), API 에러, 중첩 세션 등\n- **확인**: `3_데이터/daily/daily_metrics_briefing.log`에서 `FALLBACK` 키워드 검색\n- **디버깅 파일**: `3_데이터/daily/_claude_input.json` (마지막 입력 데이터)\n- **수동 재시도**: \"데일리 지표 브리핑 발행해줘\" (Claude Code 세션에서 직접 생성)\n\n## Slack 발송 실패\n- **Webhook 실패**: URL 변경/비활성화 시 → Slack 앱 설정에서 Webhook URL 재생성 → `.env` 업데이트\n- **Bot 발송 실패**: 채널 미참여 → `conversations.join` API 호출 필요\n- **폴백 순서**: 채널 발송 → Webhook → DM(D0AKFTZ0NRJ)\n\n## Python 환경 문제\n- **SSL 에러** (`SSLCertVerificationError`): `certifi` 패키지 확인 — `pip install certifi`\n- **모듈 미설치**: `pip install holidays anthropic google-cloud-bigquery google-api-python-client`\n- **Python 경로**: launchd는 `/usr/bin/python3` 사용. Homebrew python과 다를 수 있음 → plist 확인\n- **launchd exit 78 (EX_CONFIG)**: plist의 `StandardOutPath`와 스크립트 `logging.FileHandler`가 동일 파일을 열면 fd 충돌으로 즉시 크래시. 에러 로그도 안 남음. 해결: plist stdout/stderr를 `_stdout.log`/`_stderr.log`로 분리. **exit 78은 launchd가 \"설정 오류\" 로 해석해 스케줄을 영구 중단**하므로, 스크립트 실패 시에도 75-78 범위 exit code 사용 금지 (`sys.exit(2)` 등 사용)\n- **exit 78 복구**: `launchctl bootout gui/$(id -u)/JOB_LABEL && launchctl bootstrap gui/$(id -u) PLIST_PATH` → `runs=0` 확인\n- **사례**: sparkplus_booking 2026-03-25 — fd 충돌로 exit 78 → 수요일 10:00 스케줄 중단 → plist stdout 분리 + job 리로드로 해결",
+  "utm_convention": "원본 스프레드시트: `1mSQvsj3h3V0LGVLokee1Cz60nMnQdSvyh38xWUPx7Ls` (UTM_Convention 시트)\n\n## UTM 파라미터 구조 (= AppsFlyer 매핑)\n\n| UTM 파라미터 | AppsFlyer 파라미터 | 역할 |\n|---|---|---|\n| `utm_source` | `pid` | 광고매체 |\n| `utm_medium` | `af_channel` | 카테고리 성격 (paid, crm, ...) |\n| `utm_campaign` | `c` | 캠페인 (조합형, 아래 구조 참고) |\n| `utm_content` | `af_adset` | 광고그룹 (일자/특이사항) |\n| `utm_term` | `af_ad` | 광고소재 (컨셉/특이사항) |\n\n## utm_source × utm_medium 매핑\n\n### paid / performance\n\n| utm_source (web) | pid (AppsFlyer) |\n|---|---|\n| FacebookAds | Facebook Ads |\n| adisonofferwall_int | adisonofferwall_int |\n| adpopcorn_int | adpopcorn_int |\n| Apple Search Ads | Apple Search Ads |\n| naver_gfa | naver_band |\n| bigin | bigin |\n| Blind | Blind |\n| Blog | Blog |\n| Cauly | Cauly |\n| cauly_int | cauly_int |\n| criteonew_int | criteonew_int |\n| danggeunmx8_int | danggeunmx8_int |\n| google_display | google_display |\n| google_sa | google_sa |\n| adisonofferwall_da | adisonofferwall_da |\n| googleadwords_int | googleadwords_int |\n| inmobi_int | inmobi_int |\n| inmobidsp_int | inmobidsp_int |\n| instagram | instagram |\n| kakao | kakao |\n| kakao_int | kakao_int |\n| pmax | pmax |\n| kakao_bizboard | kakao_bizboard |\n| moloco_int | moloco_int |\n| naver_sa | naver_sa |\n| naver_bsa | naver_bsa |\n| restricted | restricted |\n| tenping_int | tenping_int |\n\n### crm / crm\n\n| utm_source | 설명 |\n|---|---|\n| kakao_msg | 카카오플러스친구 |\n| push | 앱푸시 |\n| lms | 문자 |\n| kakao_alimtalk | 카카오 알림톡 |\n| kakao_smartchatting | 카카오스마트채팅 |\n| email | 이메일 |\n\n### referral / referral\n\n| utm_source | 설명 |\n|---|---|\n| influencer | 인플루언서 마케팅 |\n| event_share | 공유하기 기능 링크 |\n\n### viral / viral\n\n| utm_source | 설명 |\n|---|---|\n| naver_blog | 네이버블로그_체험단 |\n| youtube_ppl | 유튜브 PPL |\n\n### affiliate / partnership+performance\n\n| utm_source | 설명 |\n|---|---|\n| laundrygo | 제휴마케팅 |\n| everytime | DA_에브리타임 |\n\n### owned / owned\n\n| utm_source | 설명 |\n|---|---|\n| naver_blog | 네이버블로그 |\n| instagram_profile | 인스타그램 |\n| kakao_profile | 카카오 |\n| youtube | 유튜브 |\n| instagram | 인스타그램 |\n| wordpress | 워드프레스 |\n\n### 기타 (onsite 등)\n\nkakaobank, revu, kakao_da, toss, kakao_openchat, tiktok, mobon_da, twitter, thread\n\n## utm_campaign 조합 구조\n\n`{유입방식}_{운영주체}_{캠페인운영목적}_{광고성격}_{디바이스}_{특이사항}_{랜딩페이지}`\n\n### 유입방식 (운영주체)\n\n| 입력값 | 설명 |\n|---|---|\n| ts | 트립스토어 |\n| mc | 대행사-매드코퍼레이션 |\n| kg | 킨다그로스 |\n| a1 | A1 |\n| nnt | nnt |\n| brix | 인플루언서 |\n| sc | 쉬움컴퍼니 |\n| 5mega | 5메가바이트 |\n| revu | 레뷰 |\n| kakaobank | 카뱅 유입경로 |\n| P2PWASCPC_BAU_ts | P2P WASCPC BAU |\n| P2PWASCPC_Test1_ts | P2P WASCPC Test1 |\n| P2PWASCPC_Test_ts | P2P WASCPC Test |\n\n### 캠페인 운영목적\n\n| 입력값 | 설명 |\n|---|---|\n| awareness | 인지 |\n| traffic | 트래픽 |\n| signedup | 회원가입 |\n| purchase | 구매 |\n| install | 앱설치 |\n| video-inquiry | 영상조회 |\n| productview | 프로덕트뷰 |\n| info | 알림톡안내 |\n| eventnotice | 마케팅당첨자고지용 |\n| review | 리뷰작성 |\n| apppush | 앱푸시 |\n| coupon | 쿠폰지급 |\n| couponexpiration | 쿠폰만료 |\n| inapppopup | 인앱팝업 |\n| lowest | 최저가 |\n\n### 광고성격\n\n| 입력값 | 설명 |\n|---|---|\n| asc | Meta ASC campaign |\n| AAA | Meta Advantage+ Audience |\n| re_Ace | Google Ace |\n...(이하 생략)",
+  "weekly_and_slack": "# Weekly 페이지 & 슬랙 태그 정리\n\n## Weekly 페이지 자동 생성\n- 스크립트: `3_데이터/daily/weekly_create.py`\n- 매주 목요일 11:00 launchd (`com.tripstore.weekly-create.plist`)\n- 로그: `3_데이터/daily/weekly_create.log`\n- 방식: Python 마크다운 생성 → Claude CLI (`claude -p`) → Notion MCP 페이지 생성\n- 수동: `python3 weekly_create.py [YYYY-MM-DD]` (미지정 시 다음 주)\n\n### Notion 위치 & 구조\n- **대상 DB**: `36551df77846425790d359b6056cbc7b` (마케팅실 > Weekly)\n- data_source: `3e5e053b-bb7a-4fa5-b8ea-9870bfc61af3`\n- 템플릿 참고: `28086ade8e77802cb9cfc7826b3bacfa` (10월 3주차)\n- MCP 도구: `mcp__notion__API-post-page`, `mcp__notion__API-patch-block-children`, `mcp__notion__API-retrieve-a-page`\n\n### 페이지 블록 구성 (템플릿)\n- 제목: `M월 N주차 (MM/DD~MM/DD)`\n- 팀원별 섹션: `### 김현우`, `### 최지혜`, `### 김산하`, `### 박수빈`\n- 각 팀원 섹션 내:\n  - columns 블록 (요일별 칸: 월~금)\n  - 각 column: callout(**DAYNAME**) → 체크박스 목록 (to-do)\n  - 마지막: checkmark(✅) callout — 완료 항목 구분용\n  - MEMO callout — 날짜 미확정 항목\n- 김현우 기본 태스크: 📈 지표 정리, 💸 Paid 조정 (매일), 🎯 차주 계획 수립 (금)\n\n## 슬랙 태그 → 위클리 페이지 업데이트\n- 트리거: \"슬랙 태그 정리해줘\"\n- 워크플로우: slack_search(\"현우 on:YYYY-MM-DD\") → 액션 아이템 추출 → 위클리 페이지 update_content\n- 본인 ID: U05FMTACTKP (발송 메시지 제외)\n\n### 필터링 & 분류 규칙\n- **대상 채널**: 본인이 멘션(@)된 모든 채널 메시지\n- **분류 기준**:\n  - 듀데잇 확정 (날짜 언급 있음) → 해당 요일 칸에 삽입\n  - 듀데잇 미확정 (날짜 언급 없음) → MEMO 칸\n  - FYI/완료 보고/단순 공유 → 제외 (to-do 불필요)\n- **삽입 위치**: checkmark(✅) callout 바로 위에 삽입\n- **포맷**: `- [ ] {내용} (슬랙-{발신자이름})`, MEMO는 추가 `(태그일)` 표기\n\n### 위클리 Notion 블록 탐색 순서\n1. Weekly DB에서 해당 주차 페이지 검색\n2. `### 김현우` heading 찾기\n3. columns → 해당 요일 column → callout 내 체크박스 목록 끝에 추가",
+  "weekly_report_format": "## 구조\n\n- 노션 페이지 내 **테이블** (3열: 부서 / 지난주 주요업무 / 이번주 주요업무)\n- 마케팅실 행만 업데이트\n- 회의록 섹션과 별도 — 테이블은 페이지 상단, 회의록은 heading_1 아래\n- MCP Notion은 annotations 미지원 → **curl로 Notion REST API 직접 호출** (PATCH `https://api.notion.com/v1/blocks/{row_id}` with `table_row.cells`)\n\n## 테이블 행 찾기\n\n- 테이블 block_id는 매주 다름\n- 페이지 children에서 `type: \"table\"` 블록 찾기\n- 그 table의 children에서 마케팅실 행(table_row) 찾기\n\n## 텍스트 계층\n\n```\n* 카테고리        (paid/CRM, 프로모션, 바이럴, Owned Media 운영, 기타)\n  • 항목\n    ㄴ 세부\n```\n\n## 완료 표기 규칙\n\n| 상태 | 삭제선 | 결과 텍스트 |\n|------|--------|-------------|\n| 완전 완료 | ✅ strikethrough | ` → 결과` |\n| 미완료/이월 | ❌ 없음 | ` → 이월` |\n| 진행 중 (일부만 완료) | ❌ 없음 | 현재 상태 기술 |\n| 다회차 진행 (카뱅 반짝딜 4주 등) | ❌ 없음 | N주차 표기 |\n| 미진행 결정 | ✅ strikethrough | ` → 미진행 결정` |\n\n## 이번주 주요업무 작성 기준\n\n- 월요일 발표 시점 기준, 해당 주에 진행할 일만 포함\n- 발표일 전에 완료되는 건(예: 일요일 업로드)은 **지난주에만** 기록\n- 내용 축소 금지 — 기존 주차(11W 등)와 동등 분량 유지\n- 브랜디드 콘텐츠 크리에이터명에 **유튜브 채널 링크** 유지 필수\n- 날짜는 **Notion date mention 객체** 사용\n\n## 주요 링크\n\n- 브랜디드 콘텐츠: https://www.notion.so/3a59e09ddca942b296ff5b95599955b7\n- 연포물개: https://www.youtube.com/@%EC%97%B0%ED%8F%AC%EB%AC%BC%EA%B0%9C\n- 김치귀신 마이: https://www.youtube.com/@MaiKimchi\n- 선순이: https://www.youtube.com/@SUNSOONDOL\n- 제여비: https://www.youtube.com/@jaytravelvid\n\n## 기술적 참고\n\n- `.env` 위치: `/Users/do/Desktop/마케팅/.env`\n- rich_text 배열 **100개 제한** 주의\n- strikethrough는 `annotations.strikethrough: true`로 설정\n- date mention은 `type: \"mention\", mention: { type: \"date\", date: { start: \"YYYY-MM-DD\" } }` 형태",
+  "weekly_retrospective": "## 주간 회고 자동화 (`weekly_retro/` 패키지)\n\n매주 목요일 18:00 launchd 실행. 금요일 회의 전 회고 섹션 사전 작성.\n\n**Why:** 매주 회고 섹션이 비어있어 회의 전 준비 필요 → 자동화로 데이터 기반 회고 생성\n\n**How to apply:** 목요일 18:00 자동 실행, 수동은 \"주간 회고 정리해줘\"\n\n### 모듈 구조\n- `weekly_retrospective.py` → shim (import + main 호출만)\n- `weekly_retro/` 패키지 4모듈: `main.py`(오케스트레이션+날짜), `data.py`(BQ+Amplitude+시트), `notion_io.py`(노션 읽기/쓰기), `prompt.py`(프롬프트 빌더)\n- 공용 상수(`DATABASE_ID`, `TEAM_MEMBERS`, `BLOG_*`)은 `__init__.py`에 정의\n- **테스트**: `test_weekly_retro.py` 55개 (날짜 15, 텍스트 5, todos 11, KPI 6, 팀요약 8, 블로그 4, 프롬프트 6)\n- `shared/` 4모듈 재사용 (config, notion, claude, slack)\n\n### 주차 계산 (week_number)\n- 해당 월 첫 번째 월요일 = 1주차 (3/2 = 1주차, 3/9 = 2주차, 3/16 = 3주차 ...)\n- `weekly_create.py`도 동일 로직 사용 (2026-03-20 동기화 완료)\n- **주의**: 이전 `n += 1` 로직 제거됨 (2026-03-20). 월 1일이 월요일이 아닐 때 불필요한 +1이 주차를 1 높게 만드는 버그였음\n\n### 위클리 페이지 탐색\n- DB ID `36551df77846425790d359b6056cbc7b` (data_source_id: `3e5e053b-bb7a-4fa5-b8ea-9870bfc61af3`)\n- 검색: 이름 contains \"N월 N주차\" **AND** 태그 날짜 on_or_after monday (연도 구분)\n- 회고 블록: 💪/🔧/💡 이모지로 bulleted_list_item 탐색\n\n### 데이터 수집 (목요일 오전 기준 = 수요일까지)\n1. **팀원 업무**: 위클리 노션 페이지에서 to-do 체크박스 파싱 (heading_3 → column_list 재귀 탐색, 루틴 📈💸🎯 제외)\n2. **KPI**: BQ `kpi_daily_new` — DAU 평균, 예약건수, 매출 + 전주 비교\n3. **채널 예약**: BQ `mkt_dashboard_reservation` — Paid/CRM/Organic 분류\n4. **매체별 예약**: BQ — 10+ 매체별 예약건수/금액\n5. **블로그**: Amplitude — DAU, 전환수, CVR (목표: DAU 6,000 / CVR 8.3% / 전환 500건)\n   - Amplitude API dict 형식 대응 (`{'setId': '', 'value': N}` → value 추출)\n   - 퍼널 차트(conversion_count/rate)는 `dayFunnels.series`에서 추출\n6. **월 목표 대비 진척**: 대시보드 시트 E3~E6 (전체/Paid/CRM/Organic 예약 목표) + BQ MTD 누적 → 달성률 + 월말 예상 달성률\n\n### 출력 포맷 (2026-03-20 확정)\n- 💪 잘한 점 (6~8개): [팀원이름] 태그 + 수치 포함 + 월 목표 달성률/예상 달성률\n- 🔧 개선할 점 (4~5개): 목표 미달 수치 명시 + 예상 달성률 100% 미만 항목 필수 언급\n- 💡 다음 주 아이디어 (4~5개): 데이터 기반 액션 + 담당자 표기\n- 각 항목 40~80자\n- 기존 자식 블록 삭제 후 새로 작성 (idempotent)\n- Slack DM 완료 알림\n\n### launchd\n- plist: `com.tripstore.weekly-retro`\n- 스케줄: 매주 목 18:00\n- 로그: `3_데이터/daily/weekly_retrospective.log`",
+  "youtube_pipeline": "# YouTube 자동화 파이프라인\n\n## 위치\n`콘텐츠/유튜브/`\n\n## 구조\n```\n콘텐츠/유튜브/\n├── youtube_pipeline.py      — 메인 파이프라인 (CLI)\n├── script_generator.py      — Claude API → 스크립트 JSON\n├── voice_generator.py       — ElevenLabs API → 나레이션 MP3\n├── stock_fetcher.py         — Pexels API → 스톡영상 다운로드\n├── video_editor.py          — FFmpeg → 영상 조립 (자막+클립+BGM)\n├── thumbnail_generator.py   — FFmpeg → 썸네일 생성\n├── youtube_uploader.py      — YouTube Data API → 업로드\n├── config.yaml              — 전체 설정 (음성, 영상, 업로드 등)\n├── scripts/                 — 생성된 스크립트 JSON 보관\n├── output/                  — 완성 영상 (날짜_키워드 폴더별)\n└── assets/bgm/              — BGM 파일 (mp3/wav)\n```\n\n## 사용법\n```bash\n# 쇼츠 생성\npython3 youtube_pipeline.py \"일본 3박4일 비용\"\n\n# 음성 없이 (자막+BGM only)\npython3 youtube_pipeline.py \"대만 여행 경비\" --no-voice\n\n# 롱폼\npython3 youtube_pipeline.py \"신혼여행지 추천\" -f longform -d 180\n\n# 스크립트만 (테스트)\npython3 youtube_pipeline.py \"발리 여행 비용\" --script-only\n\n# 배치 (키워드 DB 상위 N개)\npython3 youtube_pipeline.py --batch 5 --category 비용\n\n# 업로드 포함\npython3 youtube_pipeline.py \"세부 여행 경비\" --upload\n```\n\n## 필요 API 키 (.env)\n- `ANTHROPIC_API_KEY` — Claude API (스크립트 생성)\n- `ELEVENLABS_API_KEY` — 나레이션 음성 (생략 가능: --no-voice)\n- `PEXELS_API_KEY` — 스톡영상 수집\n\n## YouTube 업로드 인증\n- `콘텐츠/유튜브/client_secrets.json` — GCP OAuth 클라이언트 시크릿 필요 (미설정 — 업로드 기능 미사용)\n- 첫 실행 시 브라우저 인증 → `youtube_token.json` 자동 생성\n\n## 키워드 소스\n- 미정 (기획단계)\n\n## 의존성\n- FFmpeg (`brew install ffmpeg`) — 영상 편집, 자막, 썸네일 생성에 필수\n- Python 패키지: `anthropic`, `requests`, `pyyaml`, `google-api-python-client`, `google-auth-oauthlib`\n- 설치: `pip install anthropic requests pyyaml google-api-python-client google-auth-oauthlib`\n\n## 현재 상태\n- 스크립트 생성 → 음성 → 스톡 → 편집 → 썸네일: 정상 작동\n- YouTube 업로드: GCP OAuth 클라이언트 시크릿 미설정으로 미사용 (`client_secrets.json` 필요)"
+};
+
+
+const AGENT_DATA = {
+  "mkt-script-dev": {"title": "스크립트 개발/수정 에이전트", "model": "Opus", "mode": "acceptEdits", "turns": 30, "skills": "verify", "summary": "자동화 스크립트를 개발하거나 수정할 때 소환됩니다.", "when": ["\"이 스크립트 수정해줘\", \"새 자동화 만들어줘\"", "코드 변경이 필요한 모든 작업", "테스트 작성, 리팩토링"], "what": ["모듈 아키텍처(shim + 패키지) 준수", "shared/ 공용 모듈 재사용", "SRP + TDD 원칙 적용", "로컬 + GA 레포 동시 업데이트 (dual-update)", "수정 후 /verify 3-agent 검증 실행"], "tools": "Read, Write, Edit, Bash, Glob, Grep", "files": "3_데이터/daily/ (스크립트), tests/ (테스트), /Users/do/tripstore-automation/ (GA 레포)"},
+  "mkt-perf-analyst": {"title": "마케팅 성과 분석 에이전트", "model": "Opus", "mode": "default", "turns": 20, "skills": "", "summary": "데이터 분석이 필요할 때 소환됩니다. BQ, Amplitude, 시트 데이터 기반.", "when": ["\"CAC 분석해줘\", \"매체별 성과 비교해줘\"", "\"전환 퍼널 보여줘\", \"예산 재배분 제안해줘\"", "\"이번 주 KPI 어때?\""], "what": ["BQ 기여모델(First 50% + Last 50%, 7일) 기준 CAC만 사용", "플랫폼 자체 전환(Meta/Google) 절대 사용 금지", "임의 수치 생성 금지 — 데이터 없으면 '확인 필요' 표기", "Amplitude 전환 퍼널 (search → list → detail → reserve)", "분석 결과 노션 인사이트 모음집 하위에 저장"], "tools": "Read, Bash, Glob, Grep, Write", "files": "3_데이터/queries/ (SQL), statistics.kpi_daily_new, dw.mkt_dashboard_reservation"},
+  "mkt-naver-sa": {"title": "네이버 SA CPC 관리 에이전트", "model": "Opus", "mode": "default", "turns": 25, "skills": "", "summary": "네이버 검색광고 입찰가 관리 전문. 월/목 자동 실행 + 수동 트리거.", "when": ["\"네이버SA 조정안 보여줘\" → --prerun (적용 안 함)", "\"SA 적용해줘\" → --apply (실제 입찰가 변경)", "\"SA 영향 분석해줘\", \"입찰가 롤백해줘\"", "\"키워드 분석해줘\""], "what": ["CPA 6단계 규칙 (전환0 -30% ~ 저CPA +15%)", "TARGET_CPA ₩80K, LOOKBACK 14일, ±30%/회 제한", "브랜드 키워드(트립스토어 등) 영구 조정 제외", "Sanity Check: 경고 3건 이상 시 자동 차단", "BQ 전환 데이터만 사용 (네이버SA API 전환 사용 금지)"], "tools": "Read, Bash, Write, Edit, Glob, Grep", "files": "3_데이터/daily/sa_optimizer/ (10모듈), sa_impact/ (8모듈), bid_logs/"},
+  "mkt-ad-creative": {"title": "광고소재 운영 에이전트", "model": "Opus", "mode": "default", "turns": 25, "skills": "", "summary": "광고 소재 생성부터 등록, 성과 관리, 에셋 교체까지 담당.", "when": ["\"소재 만들어줘\" → 변형 매트릭스 + 렌더링", "\"소재 등록해줘\" → Meta API 업로드", "\"소재 성과 체크해줘\" → BQ CAC 기반 평가", "\"PMax 에셋 교체해줘\" → Google Ads 에셋 교체", "\"소재 기획안 만들어줘\" → brief_json_generator"], "what": ["6단계 파이프라인: Figma → 매트릭스 → 렌더링 → Meta 등록 → 성과 → on/off", "카피 3방향: price(가격), experience(감성), trust(후기)", "이모지 사용 금지 (요청 시에만)", "가격은 site_verifier.py로 실시간 검증", "PMax 에셋 교체: 유형당 최대 2개 제거, safeguard 적용"], "tools": "Read, Bash, Write, Edit, Glob, Grep", "files": "1_퍼포먼스/Paid/ad_pipeline/, 3_데이터/daily/ad_perf/, gads_perf/"},
+  "mkt-content": {"title": "콘텐츠 마케팅 에이전트", "model": "Opus", "mode": "default", "turns": 25, "skills": "", "summary": "SEO 블로그, 키워드, 인플루언서 발굴, YouTube 영상 파이프라인 담당.", "when": ["\"블로그 써줘\" → blog_prompt_v2 규칙 + 키워드 CSV", "\"유튜버 찾아줘\" → influencer_scout.py", "\"키워드 확장해줘\" → expand_keywords.py", "\"블로그 리포트 실행해줘\" → blog_daily_report.py", "\"유튜브 영상 만들어줘\" → youtube_pipeline.py"], "what": ["블로그 서론: 팩트 요약 (Q&A 마크업 없음), 마무리: CTA성 H2 1개", "키워드 v2 스코어링: sqrt(검색량) × 여행지 실측CVR", "검색량은 Google Ads API 실측만 (임의 수치 금지)", "인플루언서: 하드필터 6종 → 8팩터 스코어링 → Claude 시청자 분석", "크루즈/국내/호텔고유명 키워드 제외"], "tools": "Read, Bash, Write, Edit, Glob, Grep", "files": "콘텐츠/SEO/, influencer_scout/ (8모듈), 콘텐츠/유튜브/, blog/ (7모듈)"},
+  "mkt-notion-weekly": {"title": "노션 위클리/업무 정리 에이전트", "model": "Sonnet", "mode": "default", "turns": 25, "skills": "", "summary": "노션 위클리 페이지 관리 + 업무 정리 + 주간 회고 전문.", "when": ["\"오늘 업무 정리\" → 위클리 해당 요일 칸에 정리", "\"슬랙 태그 정리해줘\" → 멘션 → to-do 반영", "\"위클리 만들어줘\" → weekly_create.py", "\"주간 회고 정리해줘\" → weekly_retrospective.py", "\"주간업무 공유 업데이트해줘\""], "what": ["위클리 DB(36551df7) → 페이지 → heading3(김현우) → 요일 callout", "슬랙 태그: 날짜 확정 → 해당 요일, 미확정 → MEMO", "주간 회고: 팀원 to-do + BQ KPI + Amplitude → Claude 분석", "주간업무 공유: * 카테고리 → • 항목 → ㄴ 세부 (텍스트 계층)", "MCP Notion은 annotations 미지원 → curl로 직접 API 호출"], "tools": "Read, Bash, Write, Glob, Grep", "files": "3_데이터/daily/weekly_create.py, weekly_retro/ (5모듈)"},
+  "mkt-ops-monitor": {"title": "자동화 운영 모니터링 에이전트", "model": "Sonnet", "mode": "plan (읽기 전용)", "turns": 15, "skills": "", "summary": "launchd 자동화 상태 점검, 로그 분석, 장애 진단. 코드 수정 권한 없음.", "when": ["\"/morning-check\" → 전체 자동화 상태 테이블", "\"로그 확인해줘\" → 특정 스크립트 로그 분석", "\"왜 안 돌았어?\" → 장애 원인 진단", "\"다시 실행해줘\" → 수동 재실행 가이드"], "what": ["launchctl list | grep tripstore 상태 체크", "로그 파일 패턴 분석 (complete/success vs error/traceback)", "실행 순서 의존성 파악 (sync → briefing, CAC)", "장애 대응: BQ 인증, Sheets 할당량, Meta 토큰, Slack 폴백", "GA 비상 실행: gh workflow run --force"], "tools": "Read, Bash, Glob, Grep (Write/Edit 없음)", "files": "3_데이터/daily/*.log, ~/Library/LaunchAgents/com.tripstore.*.plist"},
+  "geo-ai-visibility": {"title": "AI 검색 가시성 분석", "model": "기본", "mode": "default", "turns": "-", "skills": "", "summary": "AI 검색 엔진(ChatGPT, Perplexity 등)에서 사이트가 얼마나 잘 보이는지 분석.", "when": ["웹사이트 AI 검색 가시성 점검 시"], "what": ["Citability 스코어링", "AI 크롤러 접근 분석", "llms.txt 준수 여부", "브랜드 멘션 AI 플랫폼 스캔"], "tools": "GEO 전용 도구", "files": "-"},
+  "geo-content": {"title": "콘텐츠 품질 E-E-A-T 평가", "model": "기본", "mode": "default", "turns": "-", "skills": "", "summary": "콘텐츠의 E-E-A-T 신호, 깊이, 가독성, AI 콘텐츠 감지를 평가.", "when": ["웹페이지 콘텐츠 품질 감사 시"], "what": ["Experience/Expertise/Authority/Trust 신호 분석", "콘텐츠 깊이와 가독성", "AI 생성 콘텐츠 감지", "토피컬 오소리티"], "tools": "GEO 전용 도구", "files": "-"},
+  "geo-platform-analysis": {"title": "AI 플랫폼별 최적화 분석", "model": "기본", "mode": "default", "turns": "-", "skills": "", "summary": "Google AI Overviews, ChatGPT, Perplexity 등 플랫폼별 준비도 분석.", "when": ["특정 AI 플랫폼 대응 최적화 시"], "what": ["Google AI Overviews 대응", "ChatGPT 웹 검색 최적화", "Perplexity AI 준비도", "Bing Copilot 대응"], "tools": "GEO 전용 도구", "files": "-"},
+  "geo-schema": {"title": "구조화 데이터(JSON-LD) 전문", "model": "기본", "mode": "default", "turns": "-", "skills": "", "summary": "Schema.org 구조화 데이터를 감지, 검증, 생성. JSON-LD 선호.", "when": ["스키마 마크업 감사/생성 시"], "what": ["Organization, Person, Article 등 스키마 감지", "JSON-LD 유효성 검증", "sameAs, speakable 등 AI 발견성 스키마", "누락 스키마 자동 생성"], "tools": "GEO 전용 도구", "files": "-"},
+  "geo-technical": {"title": "테크니컬 SEO 분석", "model": "기본", "mode": "default", "turns": "-", "skills": "", "summary": "크롤링, 인덱싱, 보안, 성능, SSR, AI 크롤러 접근 등 기술 인프라 감사.", "when": ["사이트 기술 SEO 감사 시"], "what": ["크롤러빌리티/인덱서빌리티", "Core Web Vitals (INP)", "모바일 최적화", "서버사이드 렌더링", "보안 (HTTPS, headers)"], "tools": "GEO 전용 도구", "files": "-"}
+};
+
+function openAgent(name) {
+  const a = AGENT_DATA[name];
+  if (!a) return;
+  
+  let skillBadge = a.skills ? ` <span style="background:#2a1f3f;color:#bc8cff;padding:2px 8px;border-radius:4px;font-size:11px">skills: ${a.skills}</span>` : '';
+  
+  let html = `
+    <div style="margin-bottom:16px;padding:14px;background:#0d1117;border-radius:10px;border:1px solid #21262d">
+      <div style="font-size:14px;color:#fff;font-weight:600;margin-bottom:8px">${a.summary}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">
+        <span style="background:#2a1f3f;color:#bc8cff;padding:2px 8px;border-radius:4px">${a.model}</span>
+        <span style="background:#1f3a5f;color:#58a6ff;padding:2px 8px;border-radius:4px">${a.mode}</span>
+        <span style="background:#21262d;color:#8b949e;padding:2px 8px;border-radius:4px">maxTurns: ${a.turns}</span>
+        ${skillBadge}
+      </div>
+    </div>
+    
+    <h4 style="color:#7ee787;font-size:13px;margin:14px 0 8px">언제 소환되나?</h4>
+    ${a.when.map(w => `<div style="padding:6px 12px;margin:3px 0;background:#121d12;border-left:3px solid #7ee787;border-radius:0 6px 6px 0;font-size:12px;color:#c9d1d9">${w}</div>`).join('')}
+    
+    <h4 style="color:#f0b050;font-size:13px;margin:14px 0 8px">무엇을 하나?</h4>
+    ${a.what.map(w => `<div style="padding:6px 12px;margin:3px 0;background:#1a1714;border-left:3px solid #f0b050;border-radius:0 6px 6px 0;font-size:12px;color:#c9d1d9">${w}</div>`).join('')}
+    
+    <div style="margin-top:16px;padding:10px;background:#21262d;border-radius:8px;font-size:11px;color:#8b949e">
+      <strong style="color:#c9d1d9">도구:</strong> ${a.tools}<br>
+      <strong style="color:#c9d1d9">주요 파일:</strong> ${a.files}
+    </div>
+  `;
+  
+  document.getElementById('modalTitle').textContent = name;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('memoryModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function openMemory(name) {
+  const content = MEMORY_DATA[name];
+  if (!content) return;
+  document.getElementById('modalTitle').textContent = name + '.md';
+  document.getElementById('modalBody').innerHTML = renderMarkdown(content);
+  document.getElementById('memoryModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('memoryModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function renderMarkdown(text) {
+  // Simple markdown to HTML
+  let lines = text.split('\n');
+  let html = '';
+  let inCode = false;
+  let inTable = false;
+  let tableRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // Code blocks
+    if (line.startsWith('```')) {
+      if (inCode) {
+        html += '</code></pre>';
+        inCode = false;
+      } else {
+        let lang = line.slice(3).trim();
+        html += '<pre><code class="lang-' + lang + '">';
+        inCode = true;
+      }
+      continue;
+    }
+    if (inCode) {
+      html += escHtml(line) + '\n';
+      continue;
+    }
+
+    // Table
+    if (line.includes('|') && line.trim().startsWith('|')) {
+      let cells = line.split('|').filter((c, idx) => idx > 0 && idx < line.split('|').length - 1).map(c => c.trim());
+      if (cells.every(c => /^[-:]+$/.test(c))) continue; // separator row
+      if (!inTable) {
+        html += '<table>';
+        inTable = true;
+        html += '<tr>' + cells.map(c => '<th>' + escHtml(c) + '</th>').join('') + '</tr>';
+      } else {
+        html += '<tr>' + cells.map(c => '<td>' + inlineFormat(escHtml(c)) + '</td>').join('') + '</tr>';
+      }
+      continue;
+    }
+    if (inTable) { html += '</table>'; inTable = false; }
+
+    // Headers
+    if (line.startsWith('#### ')) { html += '<h6>' + inlineFormat(escHtml(line.slice(5))) + '</h6>'; continue; }
+    if (line.startsWith('### ')) { html += '<h5>' + inlineFormat(escHtml(line.slice(4))) + '</h5>'; continue; }
+    if (line.startsWith('## ')) { html += '<h4>' + inlineFormat(escHtml(line.slice(3))) + '</h4>'; continue; }
+    if (line.startsWith('# ')) { html += '<h3>' + inlineFormat(escHtml(line.slice(2))) + '</h3>'; continue; }
+
+    // Bullet lists
+    if (/^\s*[-*]\s/.test(line)) {
+      let content = line.replace(/^\s*[-*]\s/, '');
+      html += '<div class="md-li">' + inlineFormat(escHtml(content)) + '</div>';
+      continue;
+    }
+
+    // Numbered lists
+    if (/^\s*\d+\.\s/.test(line)) {
+      let content = line.replace(/^\s*\d+\.\s/, '');
+      html += '<div class="md-li md-ol">' + inlineFormat(escHtml(content)) + '</div>';
+      continue;
+    }
+
+    // Empty line
+    if (line.trim() === '') { html += '<div class="md-spacer"></div>'; continue; }
+
+    // Normal paragraph
+    html += '<p>' + inlineFormat(escHtml(line)) + '</p>';
+  }
+  if (inCode) html += '</code></pre>';
+  if (inTable) html += '</table>';
+  return html;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function inlineFormat(s) {
+  // Bold
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Inline code
+  s = s.replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
+  // Links
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  return s;
+}
+</script>
+</body>
+</html>
